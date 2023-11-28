@@ -41,12 +41,19 @@ object WalletRegistry {
       case GetWallets(oid, replyTo) =>
         val all = store.all(oid)
         val owned = if(oid==None) all else all.filter(ws => ws.oid == oid)
-        replyTo ! Wallets(owned.map(ws => Wallet(ws.addr,ws.typ,ws.ts)),total = Some(all.size))
+        replyTo ! Wallets(
+          owned.map(ws => {
+            log.info(s"?: ${ws}")
+            Wallet(ws.addr,ws.typ,ws.ts)
+          }),
+          total = Some(all.size)
+        )
         Behaviors.same
 
       case GetWallet(addr, oid, replyTo) =>
-        val ww = store.???(addr, oid)
-        val owned = if(oid == None) ww else ww.filter(_.oid == oid)
+        val ws = store.???(addr, oid)
+        val owned = if(oid == None) ws else ws.filter(_.oid == oid)
+        log.info(s"?: ${owned}")
         replyTo ! owned.map(ws => Wallet(ws.addr,ws.typ,ws.ts))
         Behaviors.same
 
@@ -66,26 +73,32 @@ object WalletRegistry {
         
         Behaviors.same
       
-      case RandomWallet(oid, replyTo) =>
+      case RandomWallet(oid, replyTo) =>        
+
         val w = for {
           ws <- signer.random(oid)
           _ <- store.+++(ws)
           w <- {
+            log.info(s"add: ${ws}")
+
             Success(Wallet(ws.addr, ws.typ,ws.ts))
           }
         } yield w        
         
         w match {
-          case Success(_) => replyTo ! w
+          case Success(_) =>            
+            replyTo ! w
           case Failure(e)=> replyTo ! Failure(e)
         }
 
         Behaviors.same
       
       case DeleteWallet(addr, oid, replyTo) =>
-        val w = store.del(addr,oid)        
-        w match {
-          case Success(ws) => replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts))
+        val ws = store.del(addr,oid)        
+        ws match {
+          case Success(ws) => 
+            log.info(s"del: ${ws}")
+            replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts))
           case Failure(e) => replyTo ! Failure(e)
         }
         Behaviors.same

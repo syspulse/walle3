@@ -18,6 +18,7 @@ import io.syspulse.wal3._
 import io.syspulse.wal3.signer._
 import io.syspulse.wal3.store._
 import io.syspulse.wal3.server._
+import io.syspulse.wal3.cypher._
 
 case class Config(
   host:String="0.0.0.0",
@@ -26,6 +27,7 @@ case class Config(
 
   datastore:String = "mem://",
   signer:String = "eth1://",
+  cypher:String = "pass://",
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -48,6 +50,7 @@ object App extends skel.Server {
 
         ArgString('d', "datastore",s"Datastore [none://,rpc://] (def: ${d.datastore})"),
         ArgString('s', "signer",s"Signer [eth1://] (def: ${d.signer})"),
+        ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
                 
         ArgCmd("server","Command"),        
         ArgParam("<params>",""),
@@ -62,16 +65,28 @@ object App extends skel.Server {
       
       datastore = c.getString("datastore").getOrElse(d.datastore),
       signer = c.getString("signer").getOrElse(d.signer),
+      cypher = c.getString("cypher").getOrElse(d.cypher),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),
     )
 
     Console.err.println(s"Config: ${config}")
-        
+
+    val cypher = config.cypher.split("://").toList match {
+      case "none" ::  prefix :: _ => new CypherNone(prefix)
+      case "none" ::  Nil => new CypherNone("")
+      case "pass" ::  pass :: Nil => new CypherPass(pass)
+      case "pass" ::  Nil => new CypherPass("")
+      //case "kms" ::  uri => new CypherKMS(("https://"+uri.mkString("://")).split(",").toSeq)
+      case _ => {        
+        Console.err.println(s"Uknown signer: '${config.signer}'")
+        sys.exit(1)
+      }
+    }    
+
     val signer = config.signer.split("://").toList match {
-      case "eth1" ::  uri => new WalletSignerEth1()
-      //case "kms" ::  uri => new SignerKMS(("https://"+uri.mkString("://")).split(",").toSeq)
+      case "eth1" ::  uri => new WalletSignerEth1(cypher)
       case _ => {        
         Console.err.println(s"Uknown signer: '${config.signer}'")
         sys.exit(1)

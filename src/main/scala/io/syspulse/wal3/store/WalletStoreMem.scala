@@ -11,7 +11,8 @@ import com.typesafe.scalalogging.Logger
 
 import io.jvm.uuid._
 
-import io.syspulse.wal3.{Wallet,WalletSecret}
+import io.syspulse.wal3.{Wallet}
+import io.syspulse.wal3.WalletSecret
 
 class WalletStoreMem extends WalletStore {
   val log = Logger(s"${this}")
@@ -26,8 +27,7 @@ class WalletStoreMem extends WalletStore {
 
   def size:Long = wallets.size
 
-  def +++(w:WalletSecret):Try[WalletSecret] = { 
-    log.info(s"add: ${w.addr}")
+  def +++(w:WalletSecret):Try[WalletSecret] = {     
     wallets = wallets + (w.addr -> w)    
     Success(w)
   }
@@ -36,9 +36,7 @@ class WalletStoreMem extends WalletStore {
     this.+++(w).map(_ => this)
   }
 
-  def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = { 
-    log.info(s"del: ${addr}")
-    
+  def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = {         
     wallets.get(addr) match {
       case Some(w) if w.oid == oid =>
         wallets = wallets - addr
