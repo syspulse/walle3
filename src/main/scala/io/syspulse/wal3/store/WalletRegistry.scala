@@ -27,6 +27,8 @@ object WalletRegistry {
   final case class RandomWallet(oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
 
   final case class DeleteWallet(addr: String, oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
+
+  final case class SignWallet(addr: String, oid:Option[UUID], req: WalletSignReq, replyTo: ActorRef[Try[WalletSignature]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner): Behavior[io.syspulse.skel.Command] = {
     registry(store,signer)
@@ -51,10 +53,20 @@ object WalletRegistry {
         Behaviors.same
 
       case GetWallet(addr, oid, replyTo) =>
-        val ws = store.???(addr, oid)
-        val owned = if(oid == None) ws else ws.filter(_.oid == oid)
-        log.info(s"?: ${owned}")
-        replyTo ! owned.map(ws => Wallet(ws.addr,ws.typ,ws.ts))
+        val ws = for {
+          ws0 <- store.???(addr, oid)
+          b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+          ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
+        } yield ws1
+        
+        ws match {
+          case Success(ws) =>
+            log.info(s"?: ${ws}")
+            replyTo ! Success(Wallet(ws.addr,ws.typ,ws.ts))
+          case Failure(e)=> 
+            replyTo ! Failure(e)
+        }
+        
         Behaviors.same
 
       case CreateWallet(req, replyTo) =>
@@ -101,6 +113,28 @@ object WalletRegistry {
             replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts))
           case Failure(e) => replyTo ! Failure(e)
         }
+        
+        Behaviors.same
+
+      case SignWallet(addr, oid, req, replyTo) =>        
+        val sig:Try[String] = for {
+          ws0 <- store.???(addr,oid)
+          b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+          ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
+          sig <- {
+            log.info(s"sign: ${ws1}: ${req}")
+            // signing by admin on behalf of another address/wallet is possible
+            signer.sign(ws1,req.to,req.data)
+          }
+        } yield sig
+        
+        sig match {
+          case Success(sig) =>            
+            replyTo ! Success(WalletSignature(addr,sig))
+          case Failure(e)=> 
+            replyTo ! Failure(e)
+        }
+
         Behaviors.same
     }
   }

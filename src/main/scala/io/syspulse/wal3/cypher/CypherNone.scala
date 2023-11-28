@@ -19,4 +19,3 @@ class CypherNone(prefix:String) extends Cypher {
     Success(data.drop(prefix.size))
   }
 }
-

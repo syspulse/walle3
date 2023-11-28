@@ -12,4 +12,5 @@ final case class WalletCreateReq(oid:Option[UUID],mnemo:Option[String] = None)
 final case class WalletRandomReq()
 final case class WalletRes(status:String,wallet: Option[Wallet])
 
-final case class WalletSignReq(oid:Option[UUID],addr:String,to:String)
+final case class WalletSignReq(oid:Option[UUID],to:String,data:String)
+final case class WalletSignature(addr:String,sig:String)
