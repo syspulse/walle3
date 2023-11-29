@@ -74,11 +74,11 @@ object App extends skel.Server {
     Console.err.println(s"Config: ${config}")
 
     val cypher = config.cypher.split("://").toList match {
-      case "none" ::  prefix :: _ => new CypherNone(prefix)
-      case "none" ::  Nil => new CypherNone("")
-      case "pass" ::  pass :: Nil => new CypherPass(pass)
-      case "pass" ::  Nil => new CypherPass("")
-      //case "kms" ::  uri => new CypherKMS(("https://"+uri.mkString("://")).split(",").toSeq)
+      case "none" :: prefix :: _ => new CypherNone(prefix)
+      case "none" :: Nil => new CypherNone("")
+      case "pass" :: pass :: Nil => new CypherPass(pass)
+      case "pass" :: Nil => new CypherPass("")
+      case "kms" :: keyId :: _ => new CypherKMS(keyId)
       case _ => {        
         Console.err.println(s"Uknown signer: '${config.signer}'")
         sys.exit(1)

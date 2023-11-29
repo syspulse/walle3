@@ -38,6 +38,8 @@ Explicit key
 
 KMS keyId
 
+ATTENTION: AWS Credentials must contain `AWS_REGION` together with (AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN)
+
 
 Stores wallet in the DB
 
