@@ -40,6 +40,12 @@ KMS keyId
 
 ATTENTION: AWS Credentials must contain `AWS_REGION` together with (AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN)
 
+Example:
+
+```
+./run-wal3.sh --cypher=kms://arn:aws:kms:eu-west-1:$ACCOUNT:key/e7d5e92b-5553-454c-a73e-2ab104c5e087
+```
+
 
 Stores wallet in the DB
 
@@ -48,9 +54,6 @@ Stores wallet in the DB
 ### eth1://
 
 Internal sec256k1 signer
-
-
-
 
 
 

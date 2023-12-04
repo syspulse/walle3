@@ -21,5 +21,12 @@ trait WalletStore extends Store[WalletSecret,String] {
   def all(oid:Option[UUID]):Seq[WalletSecret]
   
   def size:Long
+
+  def ?(addr:String):Try[WalletSecret] = ???(addr,None)
+  def +(w:WalletSecret):Try[WalletStore] = { 
+    this.+++(w).map(_ => this)
+  }
+  def all:Seq[WalletSecret] = all(None)
+  def del(addr:String):Try[WalletStore] = del(addr).map(_ => this)
 }
 

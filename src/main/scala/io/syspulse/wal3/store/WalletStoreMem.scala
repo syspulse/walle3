@@ -32,10 +32,6 @@ class WalletStoreMem extends WalletStore {
     Success(w)
   }
 
-  def +(w:WalletSecret):Try[WalletStoreMem] = { 
-    this.+++(w).map(_ => this)
-  }
-
   def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = {         
     wallets.get(addr) match {
       case Some(w) if w.oid == oid =>
@@ -47,11 +43,8 @@ class WalletStoreMem extends WalletStore {
   }
 
   def ???(addr:String,oid:Option[UUID]):Try[WalletSecret] = wallets.get(addr) match {
-    case Some(w) => Success(w)
-    case None => Failure(new Exception(s"not found: ${addr}"))
+    case Some(w) if(w.oid == oid) => Success(w)
+    case _ => Failure(new Exception(s"not found: ${addr}"))
   }
-
-  def ?(addr:String):Try[WalletSecret] = ???(addr,None)
-  def all:Seq[WalletSecret] = all(None)
-  def del(addr:String):Try[WalletStoreMem] = del(addr).map(_ => this)
+ 
 }
