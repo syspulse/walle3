@@ -43,7 +43,7 @@ object App extends skel.Server {
       new ConfigurationAkka,
       new ConfigurationProp,
       new ConfigurationEnv, 
-      new ConfigurationArgs(args,"skel-Wallet","",
+      new ConfigurationArgs(args,"wal3-signer","",
         ArgString('h', "http.host",s"listen host (def: ${d.host})"),
         ArgInt('p', "http.port",s"listern port (def: ${d.port})"),
         ArgString('u', "http.uri",s"api uri (def: ${d.uri})"),
@@ -96,8 +96,13 @@ object App extends skel.Server {
     val store = config.datastore.split("://").toList match {
       case "dir" :: Nil => new WalletStoreDir()
       case "dir" :: dir :: _ => new WalletStoreDir(dir)
+
+      case "postgres" :: Nil => new WalletStoreDB(c,s"postgres://postgres")
       case "postgres" :: db :: Nil => new WalletStoreDB(c,s"postgres://${db}")
+      
+      case "mysql" :: Nil => new WalletStoreDB(c,s"mysql://mysql")
       case "mysql" :: db :: Nil => new WalletStoreDB(c,s"mysql://${db}")
+
       case "jdbc" :: db :: Nil => new WalletStoreDB(c,s"mysql://${db}")
       case "jdbc" :: typ :: db :: Nil => new WalletStoreDB(c,s"${typ}://${db}")
       case "mem" :: _ => new WalletStoreMem()

@@ -19,12 +19,11 @@ import io.syspulse.wal3.WalletSecret
 
 // Postgres does not support table name 'wal3' !
 class WalletStoreDB(configuration:Configuration,dbConfigRef:String) 
-  extends StoreDB[WalletSecret,String](dbConfigRef,"users",Some(configuration)) 
+  extends StoreDB[WalletSecret,String](dbConfigRef,"wallet_secret",Some(configuration)) 
   with WalletStore {
 
   import ctx._
   
-  // Because of Postgres, using dynamic schema to override table name to 'users' 
   val table = dynamicQuerySchema[WalletSecret](tableName)
   
   def indexOid = "wallet_oid"
@@ -42,7 +41,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
     val CREATE_TABLE_MYSQL_SQL = 
       s"""CREATE TABLE IF NOT EXISTS ${tableName} (
         addr VARCHAR(42) PRIMARY KEY, 
-        sk VARCHAR(67),
+        sk VARCHAR(256),
         pk VARCHAR(130),
         oid VARCHAR(36), 
         typ VARCHAR(64),        
@@ -55,7 +54,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
     val CREATE_TABLE_POSTGRES_SQL = 
       s"""CREATE TABLE IF NOT EXISTS ${tableName} (
         addr VARCHAR(42) PRIMARY KEY, 
-        sk VARCHAR(67),
+        sk VARCHAR(256),
         pk VARCHAR(130),
         oid UUID, 
         typ VARCHAR(64),        
