@@ -105,6 +105,8 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
       case e:Exception => Failure(new Exception(s"could not insert: ${e}"))
     }
   }
+
+  def +(w:WalletSecret):Try[WalletStoreDB] = +++(w).map(_ => this)
   
   def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = { 
     log.info(s"DELETE: addr=${addr},oid=${oid}")
@@ -134,13 +136,10 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
     }
   }
 
-  def findByOid(oid:UUID):Option[WalletSecret] = {
+  def findByOid(oid:UUID):Seq[WalletSecret] = {
     log.info(s"FIND: oid=${oid}")
     //ctx.run(query[WalletSecret].filter(o => o.xid == lift(xid))) match {
-    ctx.run(table.filter(w => w.oid == lift(Some(oid)))) match {
-      case h :: _ => Some(h)
-      case Nil => None
-    }
+    ctx.run(table.filter(w => w.oid == lift(Some(oid))))
   }
   
 }

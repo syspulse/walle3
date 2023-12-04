@@ -48,7 +48,7 @@ object App extends skel.Server {
         ArgInt('p', "http.port",s"listern port (def: ${d.port})"),
         ArgString('u', "http.uri",s"api uri (def: ${d.uri})"),
 
-        ArgString('d', "datastore",s"Datastore [cache://,dir://] (def: ${d.datastore})"),
+        ArgString('d', "datastore",s"Datastore [cache://,dir://,postgres://,mysql://] (def: ${d.datastore})"),
         ArgString('s', "signer",s"Signer [eth1://] (def: ${d.signer})"),
         ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
                 
@@ -93,8 +93,9 @@ object App extends skel.Server {
       }
     }    
 
-    val store = config.datastore.split("://").toList match {          
-      //case "dir" :: dir ::  _ => new WalletStoreDir(dir)
+    val store = config.datastore.split("://").toList match {
+      case "dir" :: Nil => new WalletStoreDir()
+      case "dir" :: dir :: _ => new WalletStoreDir(dir)
       case "postgres" :: db :: Nil => new WalletStoreDB(c,s"postgres://${db}")
       case "mysql" :: db :: Nil => new WalletStoreDB(c,s"mysql://${db}")
       case "jdbc" :: db :: Nil => new WalletStoreDB(c,s"mysql://${db}")
@@ -104,14 +105,13 @@ object App extends skel.Server {
         Console.err.println(s"Uknown datastore: '${config.datastore}'")
         sys.exit(1)      
     }
-    
+
     Console.err.println(s"Cypher: ${cypher}")
     Console.err.println(s"Signer: ${signer}")
     Console.err.println(s"Store: ${store}")
 
     config.cmd match {
-      case "server" => 
-
+      case "server" =>
         run( config.host, config.port,config.uri,c,
           Seq(
             (WalletRegistry(store,signer),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )

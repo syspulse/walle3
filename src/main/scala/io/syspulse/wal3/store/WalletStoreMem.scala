@@ -27,10 +27,15 @@ class WalletStoreMem extends WalletStore {
 
   def size:Long = wallets.size
 
+  def findByOid(oid:UUID):Seq[WalletSecret] = 
+    wallets.values.filter(_.oid == Some(oid)).toSeq
+
   def +++(w:WalletSecret):Try[WalletSecret] = {     
     wallets = wallets + (w.addr -> w)    
     Success(w)
   }
+
+  def +(w:WalletSecret):Try[WalletStoreMem] = +++(w).map(_ => this)    
 
   def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = {         
     wallets.get(addr) match {
