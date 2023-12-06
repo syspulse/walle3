@@ -2,43 +2,48 @@
 
 Wallet Signer
 
-0. Private Keys never leave Signer
+1. Private Keys never leave Signer
 
-1. Wallet is associated with `oid` (owner ID UUID) and assigned during generation
+2. Wallet is associated with `oid` (owner ID UUID) and assigned during generation
 
-2. Only JWT with correct `oid` can perform operations on a wallet
+3. Only JWT with correct `oid` can perform operations on a wallet
 
-3. Admin JWT can perform any operations
+4. Admin/Service JWT can perform any operations
 
 ## Data Store
 
-### mem://
+| parameter | description |
+|-------------|--------------|
+| mem://    |  Used only for testing. Stores wallets in the memory              |
+| dir://[dir]    | Stores wallets in encrypted files (in the directory) |
+| jdbc:// | JDBC (Posgtres DB by default) |
+|     | 
 
-Used only for testing. Stores wallets in the memmory unencrypted
+Example:
 
-### dir://
+```
+./run-wal3.sh --datastore=jdbc://postgres
+```
 
-Stores wallets in a file in the directory
+`postgres` config is defined in `conf/application.conf`
 
-### jdbc://
+```
+./run-wal3.sh --datastore=dir://./store
+```
 
-## Wallet Encryption
 
-Encryption for wallet data (private keys, oid)
+## Cypher (Wallet encryption)
 
-### file://
+__NOTE__: Only PrivateKey is encrypted
 
-File with the key
+| parameter | description |
+|-------------|--------------|
+| file://[file]    |  file with an passphrase (encryption key) (e.g. `file://key.txt`) |
+| key://<key>    | Encryption key (e.g. `key://passphrase123`) |
+| kms://<arn> | AWS KMS AES-256 keyId |
+|     | 
 
-### key://
-
-Explicit key
-
-### kms://
-
-KMS keyId
-
-ATTENTION: AWS Credentials must contain `AWS_REGION` together with (AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN)
+__ATTENTION__: AWS Credentials must contain `AWS_REGION` together with (AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN)
 
 Example:
 
@@ -46,15 +51,14 @@ Example:
 ./run-wal3.sh --cypher=kms://arn:aws:kms:eu-west-1:$ACCOUNT:key/e7d5e92b-5553-454c-a73e-2ab104c5e087
 ```
 
-
-Stores wallet in the DB
-
 ## Signer
 
-### eth1://
-
-Internal sec256k1 signer
-
+| parameter | description |
+|-------------|--------------|
+| eth1://    |  secp256k1 Signer             |
+| eth2://    | BLS Signer (not supported for transaction) |
+| kms://[arn] | AWS KMS SECP256K1 keyId |
+|     | 
 
 
 

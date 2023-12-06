@@ -11,8 +11,9 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 import org.web3j.protocol.core.methods.response.EthSign
 import io.syspulse.wal3.cypher.Cypher
+import io.syspulse.wal3.Blockchains
 
-class WalletSignerEth1(cypher:Cypher) extends WalletSigner {
+class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSigner {
   val log = Logger(s"${this}")
 
   def random(oid:Option[UUID]):Try[WalletSecret] = {
@@ -30,21 +31,26 @@ class WalletSignerEth1(cypher:Cypher) extends WalletSigner {
      } yield ws
   }
 
-  def sign(ws:WalletSecret,to:String,data:String):Try[String] = {
+  def sign(ws:WalletSecret,
+           to:String,nonce:Long,data:String,
+           gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
+           value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
+        
     for {
+      web3 <- blockchains.getWeb3(chainId)
       sk <- cypher.decrypt(ws.sk,ws.metadata)
-      stix <- Success(Eth.signTransaction(
+      sig <- Eth.signTransaction(
         sk = sk,
         to = to, 
-        value = BigInt(0), 
-        nonce = 0, 
-        gasPrice = BigInt(0), 
-        gasTip = BigInt(0), 
-        gasLimit = 21000,
+        value = value, 
+        nonce = nonce, 
+        gasPrice = gasPrice, 
+        gasTip = gasTip, 
+        gasLimit = gasLimit,
         data = if(data.isBlank) None else Some(data),
-        chainId = 11155111
-      ))
-    } yield stix    
+        chainId = chainId
+      )
+    } yield sig    
   }
 }
 

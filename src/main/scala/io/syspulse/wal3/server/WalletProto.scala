@@ -12,5 +12,22 @@ final case class WalletCreateReq(oid:Option[UUID],mnemo:Option[String] = None)
 final case class WalletRandomReq()
 final case class WalletRes(status:String,wallet: Option[Wallet])
 
-final case class WalletSignReq(oid:Option[UUID],to:String,data:String)
-final case class WalletSignature(addr:String,sig:String)
+final case class WalletSignReq(oid:Option[UUID],to:String,
+  nonce:Long, data:String,
+  gasPrice:String,gasTip:String,gasLimit:Long,
+  value:Option[String] = None,chainId:Option[Long] = Some(11155111)
+)
+
+final case class WalletTxReq(oid:Option[UUID],to:String,
+  nonce:Long, data:String,
+  gasPrice:String,gasTip:String,gasLimit:Long,
+  value:Option[String] = None,chainId:Option[Long] = Some(11155111)
+)
+
+final case class WalletBalanceReq(oid:Option[UUID],blockchains:Seq[String]=Seq())
+
+final case class WalletSig(addr:String,sig:String)
+final case class WalletTx(addr:String,txHash:String)
+
+final case class BlockchainBalance(name:String,id:Long,balance:BigInt)
+final case class WalletBalance(addr:String,balances:Seq[BlockchainBalance])

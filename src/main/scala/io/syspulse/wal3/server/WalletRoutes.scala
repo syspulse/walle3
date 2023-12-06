@@ -73,6 +73,8 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   val metricCreateCount: Counter = Counter.build().name("wal3_create_total").help("wal3 posts").register(TelemetryRegistry.registry)
   val metricDeleteCount: Counter = Counter.build().name("wal3_delete_total").help("wal3 deletes").register(TelemetryRegistry.registry)
   val metricSignCount: Counter = Counter.build().name("wal3_sign_total").help("wal3 signs").register(TelemetryRegistry.registry)
+  val metricTxCount: Counter = Counter.build().name("wal3_tx_total").help("wal3 transactions").register(TelemetryRegistry.registry)
+  val metricBalanceCount: Counter = Counter.build().name("wal3_balance_total").help("wal3 balances").register(TelemetryRegistry.registry)
         
   def getWallets(oid:Option[UUID]): Future[Wallets] = registry.ask(GetWallets(oid, _))
   def getWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(GetWallet(addr, oid, _))
@@ -80,7 +82,10 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def createWallet(req: WalletCreateReq): Future[Try[Wallet]] = registry.ask(CreateWallet(req, _))
   def deleteWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(DeleteWallet(addr,oid, _))
   def randomWallet(oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,_))
-  def signWallet(addr:String, oid:Option[UUID], req: WalletSignReq): Future[Try[WalletSignature]] = registry.ask(SignWallet(addr,oid,req, _))
+  def signWallet(addr:String, oid:Option[UUID], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
+
+  def txWallet(addr:String, oid:Option[UUID], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
+  def balanceWallet(addr:String, oid:Option[UUID], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
 
 
   @GET @Path("/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
@@ -146,7 +151,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Sign Transaction",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletSignReq])))),
-    responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletSignature])))))
+    responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletSig])))))
   )
   def signWalletRoute(addr:String,oid:Option[UUID]) = post {
     entity(as[WalletSignReq]) { req =>
@@ -156,6 +161,17 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
       }
     }
   }
+
+  @GET @Path("/") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
+    responses = Array(
+      new ApiResponse(responseCode = "200", description = "Balances",content = Array(new Content(schema = new Schema(implementation = classOf[WalletBalance])))))
+  )
+  def getWalletBalanceRoute(addr:String,oid:Option[UUID]) = get {
+    metricBalanceCount.inc()
+    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = Seq())))
+  }
+
 
   
   val corsAllow = CorsSettings(system.classicSystem)
@@ -189,8 +205,18 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 else
                   signWalletRoute(addr,authn.getUser)
               )
-            }            
-          } ~          
+            }
+          } ~
+          pathPrefix("balance") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  getWalletBalanceRoute(addr,None)
+                else
+                  getWalletBalanceRoute(addr,authn.getUser)
+              )
+            }
+          } ~
           pathEndOrSingleSlash {            
             authenticate()(authn =>
               if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {

@@ -28,6 +28,7 @@ case class Config(
   datastore:String = "mem://",
   signer:String = "eth1://",
   cypher:String = "pass://",
+  blockchains:Seq[String] = Seq("1=http://geth1.demo.hacken.cloud:8545"),
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -51,6 +52,7 @@ object App extends skel.Server {
         ArgString('d', "datastore",s"Datastore [cache://,dir://,postgres://,mysql://] (def: ${d.datastore})"),
         ArgString('s', "signer",s"Signer [eth1://] (def: ${d.signer})"),
         ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
+        ArgString('b', "blockchains",s"Blockchains [id1=http://rpc1,id2=http://rpc2] (def: ${d.blockchains})"),
                 
         ArgCmd("server","Command"),        
         ArgParam("<params>",""),
@@ -66,12 +68,15 @@ object App extends skel.Server {
       datastore = c.getString("datastore").getOrElse(d.datastore),
       signer = c.getString("signer").getOrElse(d.signer),
       cypher = c.getString("cypher").getOrElse(d.cypher),
+      blockchains = c.getListString("blockchains",d.blockchains),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),
     )
 
     Console.err.println(s"Config: ${config}")
+
+    val blockchains = Blockchains(config.blockchains)
 
     val cypher = config.cypher.split("://").toList match {
       case "none" :: prefix :: _ => new CypherNone(prefix)
@@ -86,7 +91,7 @@ object App extends skel.Server {
     }    
 
     val signer = config.signer.split("://").toList match {
-      case "eth1" ::  uri => new WalletSignerEth1(cypher)
+      case "eth1" ::  uri => new WalletSignerEth1(cypher,blockchains)
       case _ => {        
         Console.err.println(s"Uknown signer: '${config.signer}'")
         sys.exit(1)
@@ -114,12 +119,13 @@ object App extends skel.Server {
     Console.err.println(s"Cypher: ${cypher}")
     Console.err.println(s"Signer: ${signer}")
     Console.err.println(s"Store: ${store}")
+    Console.err.println(s"Blockchains: ${blockchains}")
 
     config.cmd match {
       case "server" =>
         run( config.host, config.port,config.uri,c,
           Seq(
-            (WalletRegistry(store,signer),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )
+            (WalletRegistry(store,signer,blockchains),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )
           )
         ) 
     }

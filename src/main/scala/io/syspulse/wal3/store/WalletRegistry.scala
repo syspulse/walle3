@@ -12,6 +12,8 @@ import akka.actor.typed.scaladsl.Behaviors
 
 import io.syspulse.skel.Command
 
+import io.syspulse.skel.crypto.Eth
+
 import io.syspulse.wal3._
 import io.syspulse.wal3.server._
 import io.syspulse.wal3.signer.WalletSigner
@@ -28,13 +30,15 @@ object WalletRegistry {
 
   final case class DeleteWallet(addr: String, oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
 
-  final case class SignWallet(addr: String, oid:Option[UUID], req: WalletSignReq, replyTo: ActorRef[Try[WalletSignature]]) extends Command
+  final case class SignWallet(addr: String, oid:Option[UUID], req: WalletSignReq, replyTo: ActorRef[Try[WalletSig]]) extends Command
+  final case class TxWallet(addr: String, oid:Option[UUID], req: WalletTxReq, replyTo: ActorRef[Try[WalletTx]]) extends Command
+  final case class BalanceWallet(addr: String, oid:Option[UUID], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
   
-  def apply(store: WalletStore,signer:WalletSigner): Behavior[io.syspulse.skel.Command] = {
-    registry(store,signer)
+  def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains): Behavior[io.syspulse.skel.Command] = {
+    registry(store,signer,blockchains)
   }
 
-  private def registry(store: WalletStore,signer:WalletSigner): Behavior[io.syspulse.skel.Command] = {    
+  private def registry(store: WalletStore,signer:WalletSigner,blockchains:Blockchains): Behavior[io.syspulse.skel.Command] = {    
     
     // Rules of oid
     // 1. if oid == None - this is access from admin/service account
@@ -70,19 +74,7 @@ object WalletRegistry {
         Behaviors.same
 
       case CreateWallet(req, replyTo) =>
-        
-        // val store1 = 
-        //   store.?(req.addr) match {
-        //     case Success(_) => 
-        //       replyTo ! Failure(new Exception(s"already exists: ${id}"))
-        //       Success(store)
-        //     case _ =>  
-        //       val user = Wallet(id, req.email, req.name, req.xid, req.avatar, System.currentTimeMillis())
-        //       val store1 = store.+(user)
-        //       replyTo ! store1.map(_ => user)
-        //       store1
-        //   }
-        
+        log.error(s"Not supported, use RandomWallet")        
         Behaviors.same
       
       case RandomWallet(oid, replyTo) =>        
@@ -118,19 +110,113 @@ object WalletRegistry {
 
       case SignWallet(addr, oid, req, replyTo) =>        
         val sig:Try[String] = for {
+          web3 <- blockchains.getWeb3(req.chainId.getOrElse(11155111))
+          nonce <- Eth.getNonce(addr)(web3)
+          gasPrice <- Eth.strToWei(req.gasPrice)(web3)
+          gasTip <- Eth.strToWei(req.gasTip)(web3)
+          value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
+
           ws0 <- store.???(addr,oid)
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
-          ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
+          ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))          
+          
           sig <- {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
-            signer.sign(ws1,req.to,req.data)
+            signer.sign(ws1, req.to, req.nonce, req.data, gasPrice, gasTip, req.gasLimit, value, req.chainId.getOrElse(11155111))
           }
         } yield sig
         
         sig match {
           case Success(sig) =>            
-            replyTo ! Success(WalletSignature(addr,sig))
+            replyTo ! Success(WalletSig(addr,sig))
+          case Failure(e)=> 
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
+
+      case TxWallet(addr, oid, req, replyTo) =>        
+        
+        val txHash:Try[String] = for {
+          web3 <- blockchains.getWeb3(req.chainId.getOrElse(11155111))
+          gasPrice <- Eth.strToWei(req.gasPrice)(web3)
+          gasTip <- Eth.strToWei(req.gasTip)(web3)
+          value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
+
+          ws0 <- store.???(addr,oid)
+          b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+          ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))          
+          
+          sig <- {
+            log.info(s"sign: ${ws1}: ${req}")
+            // signing by admin on behalf of another address/wallet is possible
+            signer.sign(ws1, req.to, req.nonce, req.data, gasPrice, gasTip, req.gasLimit, value, req.chainId.getOrElse(11155111))
+          }
+
+          hash <- {
+            log.info(s"transaction: ${ws1}: ${sig}")            
+            Eth.send(sig)(web3)
+          }
+        } yield hash
+        
+        txHash match {
+          case Success(hash) =>            
+            replyTo ! Success(WalletTx(addr,hash))
+          case Failure(e)=> 
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
+
+      case BalanceWallet(addr, oid, req, replyTo) =>        
+        
+        val balances:Try[Seq[BlockchainBalance]] = for {
+          // ws0 <- store.???(addr,oid)
+          // b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+          // ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
+          
+          web3s <- {
+            val bb:Seq[Blockchain] = if(req.blockchains.size == 0) 
+              blockchains.all()
+            else 
+              req.blockchains.flatMap(b => {
+                if(b.size > 0 && b(0).isDigit)
+                  blockchains.get(b.toLong)
+                else
+                  blockchains.getByName(b)
+              })
+            
+            val web3s = bb.flatMap(b => {
+              blockchains.getWeb3(b.id).toOption match {
+                case Some(web3) => Some((b,web3))
+                case _ => 
+                  log.warn(s"could not get Web3: ${addr}: ${b}")
+                  None
+              }
+            })            
+            Success(web3s)
+          }
+        
+          balances <- {
+            Success(
+              web3s.flatMap(web3 => {
+                log.info(s"balance: ${addr}: ${web3}")
+                Eth.getBalance(addr)(web3._2).toOption match {
+                  case Some(bal) => Some(BlockchainBalance(web3._1.name,web3._1.id,bal))
+                  case _ => 
+                    log.warn(s"could not get Balance: ${addr}: ${web3}")
+                    None
+                }
+              })
+            )
+          }
+          
+        } yield balances
+        
+        balances match {
+          case Success(balances) =>            
+            replyTo ! Success(WalletBalance(addr,balances))
           case Failure(e)=> 
             replyTo ! Failure(e)
         }

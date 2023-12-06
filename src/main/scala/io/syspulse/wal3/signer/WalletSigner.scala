@@ -10,6 +10,8 @@ import io.syspulse.wal3.WalletSecret
 trait WalletSigner {
     
   def random(oid:Option[UUID]):Try[WalletSecret]
-  def sign(ws:WalletSecret,to:String,data:String):Try[String]
+  def sign(ws:WalletSecret,to:String,nonce:Long,data:String,
+           gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
+           value:BigInt,chainId:Long):Try[String]
 }
 
