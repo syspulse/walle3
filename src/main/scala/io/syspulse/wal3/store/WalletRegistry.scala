@@ -124,9 +124,10 @@ object WalletRegistry {
         Behaviors.same
 
       case SignWallet(addr, oid, req, replyTo) =>        
+        val chainId = req.chainId.getOrElse(11155111L)
         val sig:Try[String] = for {
-          web3 <- blockchains.getWeb3(req.chainId.getOrElse(11155111))
-          nonce <- Eth.getNonce(addr)(web3)
+          web3 <- blockchains.getWeb3(chainId)
+          nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- Eth.strToWei(req.gasPrice)(web3)
           gasTip <- Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
@@ -138,7 +139,7 @@ object WalletRegistry {
           sig <- {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
-            signer.sign(ws1, req.to, req.nonce, req.data, gasPrice, gasTip, req.gasLimit, value, req.chainId.getOrElse(11155111))
+            signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
           }
         } yield sig
         
@@ -152,9 +153,10 @@ object WalletRegistry {
         Behaviors.same
 
       case TxWallet(addr, oid, req, replyTo) =>        
-        
+        val chainId = req.chainId.getOrElse(11155111L)
         val txHash:Try[String] = for {
-          web3 <- blockchains.getWeb3(req.chainId.getOrElse(11155111))
+          web3 <- blockchains.getWeb3(chainId)
+          nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- Eth.strToWei(req.gasPrice)(web3)
           gasTip <- Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
@@ -166,7 +168,7 @@ object WalletRegistry {
           sig <- {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
-            signer.sign(ws1, req.to, req.nonce, req.data, gasPrice, gasTip, req.gasLimit, value, req.chainId.getOrElse(11155111))
+            signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
           }
 
           hash <- {

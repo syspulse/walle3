@@ -84,7 +84,6 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def randomWallet(oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,_))
   
   def signWallet(addr:String, oid:Option[UUID], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
-
   def txWallet(addr:String, oid:Option[UUID], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
   def balanceWallet(addr:String, oid:Option[UUID], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
 
@@ -169,6 +168,21 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
+  @POST @Path("/{addr}/tx") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"),summary = "Send Transaction",
+    requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletTxReq])))),
+    responses = Array(new ApiResponse(responseCode = "200", description = "Transaction Hash",content = Array(new Content(schema = new Schema(implementation = classOf[WalletTx])))))
+  )
+  def txWalletRoute(addr:String,oid:Option[UUID]) = post {
+    entity(as[WalletTxReq]) { req =>
+      onSuccess(txWallet(addr,oid,req)) { r =>
+        metricTxCount.inc()
+        complete(r)
+      }
+    }
+  }
+
   @GET @Path("/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
     responses = Array(
@@ -222,6 +236,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                   signWalletRoute(addr,None)
                 else
                   signWalletRoute(addr,authn.getUser)
+              )
+            }
+          } ~
+          pathPrefix("tx") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  txWalletRoute(addr,None)
+                else
+                  txWalletRoute(addr,authn.getUser)
               )
             }
           } ~

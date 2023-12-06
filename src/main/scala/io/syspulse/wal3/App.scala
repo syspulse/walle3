@@ -28,7 +28,7 @@ case class Config(
   datastore:String = "mem://",
   signer:String = "eth1://",
   cypher:String = "key://",
-  blockchains:Seq[String] = Seq("1=http://geth1.demo.hacken.cloud:8545"),
+  blockchains:Seq[String] = Seq(),
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
