@@ -79,9 +79,10 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def getWallets(oid:Option[UUID]): Future[Wallets] = registry.ask(GetWallets(oid, _))
   def getWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(GetWallet(addr, oid, _))
   
-  def createWallet(req: WalletCreateReq): Future[Try[Wallet]] = registry.ask(CreateWallet(req, _))
+  def createWallet(oid:Option[UUID],req: WalletCreateReq): Future[Try[Wallet]] = registry.ask(CreateWallet(oid,req, _))
   def deleteWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(DeleteWallet(addr,oid, _))
   def randomWallet(oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,_))
+  
   def signWallet(addr:String, oid:Option[UUID], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
 
   def txWallet(addr:String, oid:Option[UUID], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
@@ -133,13 +134,19 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   )
   def createWalletRoute(oid:Option[UUID]) = post {
     entity(as[WalletCreateReq]) { req =>
-      onSuccess(createWallet(req)) { r =>
+      onSuccess(createWallet(oid,req)) { r =>
         metricCreateCount.inc()
         complete(StatusCodes.Created, r)
       }
     }
   }
 
+  @POST @Path("/random") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"),summary = "Create Random Wallet",
+    requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletRandomReq])))),
+    responses = Array(new ApiResponse(responseCode = "200", description = "Wallet",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
+  )
   def randomWalletRoute(oid:Option[UUID]) = post { 
     onSuccess(randomWallet(oid)) { r =>
       metricCreateCount.inc()
@@ -162,7 +169,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @GET @Path("/") @Produces(Array(MediaType.APPLICATION_JSON))
+  @GET @Path("/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Balances",content = Array(new Content(schema = new Schema(implementation = classOf[WalletBalance])))))
@@ -186,15 +193,26 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
             authenticate()(authn => 
               if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
                 getWalletsRoute(None) ~
-                //createWalletRoute(None) ~
-                randomWalletRoute(None)
-              } else {
-                getWalletsRoute(authn.getUser) ~
+                createWalletRoute(None)
+                // randomWalletRoute(None)
+              } 
+              else {
+                getWalletsRoute(authn.getUser)
                 //createWalletRoute(authn.getUser) ~
-                randomWalletRoute(authn.getUser)
+                //randomWalletRoute(authn.getUser)
               }
             ),            
           )
+        },
+        pathPrefix("random") {
+          pathEndOrSingleSlash { 
+            authenticate()(authn =>
+              if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                randomWalletRoute(None)
+              else
+                randomWalletRoute(authn.getUser)
+            )
+          }
         },
         pathPrefix(Segment) { addr => 
           pathPrefix("sign") {

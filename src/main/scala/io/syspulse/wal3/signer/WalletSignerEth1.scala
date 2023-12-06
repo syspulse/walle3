@@ -31,6 +31,21 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
      } yield ws
   }
 
+  def create(oid:Option[UUID],sk:String):Try[WalletSecret] = {
+    log.info(s"create: ${oid}, sk_hash=${Util.sha256(sk)}")
+    for {
+      kp <- Eth.generate(sk)
+      (sk,seed) <- cypher.encrypt(Util.hex(kp.sk))
+      ws <- Success(WalletSecret(
+        sk,
+        Util.hex(kp.pk),
+        Eth.address(kp.pk),
+        oid,
+        metadata = seed
+      ))
+     } yield ws
+  }
+
   def sign(ws:WalletSecret,
            to:String,nonce:Long,data:String,
            gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,

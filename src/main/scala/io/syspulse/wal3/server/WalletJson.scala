@@ -16,9 +16,11 @@ object WalletJson extends JsonCommon {
 
   implicit val jf_wal = jsonFormat3(Wallet)
   implicit val jf_wals = jsonFormat2(Wallets)
+  
   implicit val jf_wal_cr = jsonFormat2(WalletCreateReq)
+  implicit val jf_wal_rnd = jsonFormat1(WalletRandomReq)  
   implicit val jf_wal_res = jsonFormat2(WalletRes)    
-  implicit val jf_wal_rnd = jsonFormat0(WalletRandomReq)  
+  
   implicit val jf_wal_sig_req = jsonFormat9(WalletSignReq)
   implicit val jf_wal_tx_req = jsonFormat9(WalletTxReq)
   implicit val jf_wal_sig = jsonFormat2(WalletSig)  

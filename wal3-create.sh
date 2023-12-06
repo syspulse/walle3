@@ -1,6 +1,7 @@
 #!/bin/bash
 
-OID=${1:-00000000-0000-0000-1000-000000000001}
+SK=${1:-0x000000000000000000000000000000000000000000000000000000000000000001}
+OID=${2:-00000000-0000-0000-1000-000000000001}
 
 ACCESS_TOKEN=${ACCESS_TOKEN-`cat ACCESS_TOKEN`}
 SERVICE_URI=${SERVICE_URI:-http://localhost:8080/api/v1/wal3}
@@ -10,9 +11,9 @@ SERVICE_URI=${SERVICE_URI:-http://localhost:8080/api/v1/wal3}
 #DATA_JSON="{\"email\":\"$EMAIL\",\"name\":\"$NAME\",\"name\":\"$NAME\",\"xid\":\"$XID\"}"
 if [ "$OID" == "random" ]; then
    OID=`uuidgen`
-   DATA_JSON="{\"oid\":\"$OID\"}"
+   DATA_JSON="{\"oid\":\"$OID\",\"sk\":\"$SK\"}"
 else
-   DATA_JSON="{\"oid\":\"$OID\"}"
+   DATA_JSON="{\"oid\":\"$OID\",\"sk\":\"$SK\"}"
 fi
 
 >&2 echo $DATA_JSON
