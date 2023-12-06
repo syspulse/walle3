@@ -61,4 +61,12 @@ Example:
 |     | 
 
 
+## Blockchains
 
+Wallet operations (`balance`, `signature`, `transaction`) require connection to the RPC node.
+
+Example:
+
+```
+./run-wal3.sh --datastore=postgres:// --blockchains=1=mainnet=http://infura,534352=scroll=https://rpc.scroll.io
+```

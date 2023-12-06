@@ -81,11 +81,16 @@ object App extends skel.Server {
     val cypher = config.cypher.split("://").toList match {
       case "none" :: prefix :: _ => new CypherNone(prefix)
       case "none" :: Nil => new CypherNone("")
-      case "pass" :: pass :: Nil => new CypherPass(pass)
-      case "pass" :: Nil => new CypherPass("")
+      
+      case "key" :: key :: Nil => new CypherKey(key)
+      case "key" :: Nil => new CypherKey("")
+
+      case "file" :: file :: Nil => new CypherFile(file)
+      case "file" :: Nil => new CypherFile("")
+
       case "kms" :: keyId :: _ => new CypherKMS(keyId)
       case _ => {        
-        Console.err.println(s"Uknown cypher: '${config.signer}'")
+        Console.err.println(s"Uknown cypher: '${config.cypher}'")
         sys.exit(1)
       }
     }    
