@@ -49,7 +49,7 @@ object WalletRegistry {
         val owned = if(oid==None) all else all.filter(ws => ws.oid == oid)
         replyTo ! Wallets(
           owned.map(ws => {
-            log.info(s"?: ${ws}")
+            log.debug(s"?: ${ws}")
             Wallet(ws.addr,ws.typ,ws.ts)
           }),
           total = Some(all.size)

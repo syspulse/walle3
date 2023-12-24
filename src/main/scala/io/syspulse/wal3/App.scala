@@ -49,8 +49,8 @@ object App extends skel.Server {
         ArgInt('p', "http.port",s"listern port (def: ${d.port})"),
         ArgString('u', "http.uri",s"api uri (def: ${d.uri})"),
 
-        ArgString('d', "datastore",s"Datastore [cache://,dir://,postgres://,mysql://] (def: ${d.datastore})"),
-        ArgString('s', "signer",s"Signer [eth1://] (def: ${d.signer})"),
+        ArgString('d', "datastore",s"Datastore [cache://,dir://,postgres://,mysql://,kms://] (def: ${d.datastore})"),
+        ArgString('s', "signer",s"Signer [eth1://,kms://] (def: ${d.signer})"),
         ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
         ArgString('b', "blockchains",s"Blockchains [id1=http://rpc1,id2=http://rpc2] (def: ${d.blockchains})"),
                 
@@ -95,8 +95,9 @@ object App extends skel.Server {
       }
     }    
 
-    val signer = config.signer.split("://").toList match {
+    var signer = config.signer.split("://").toList match {
       case "eth1" ::  uri => new WalletSignerEth1(cypher,blockchains)
+      case "kms" ::  uri => new WalletStoreKMS(blockchains,uri.mkString("://"))
       case _ => {        
         Console.err.println(s"Uknown signer: '${config.signer}'")
         sys.exit(1)
@@ -104,6 +105,16 @@ object App extends skel.Server {
     }    
 
     val store = config.datastore.split("://").toList match {
+      // WARNING: kms signer must be also StoreKMS
+      case "kms" :: uri => 
+        
+        if( !signer.isInstanceOf[WalletStoreKMS]) {
+          log.warn(s"KMS store supports only kms:// signer: creating default KMS signer")
+          signer = new WalletStoreKMS(blockchains,uri.mkString("://"))
+          signer
+        } 
+        signer.asInstanceOf[WalletStoreKMS] //new WalletStoreKMS(blockchains,config.tag)
+
       case "dir" :: Nil => new WalletStoreDir()
       case "dir" :: dir :: _ => new WalletStoreDir(dir)
 
@@ -115,6 +126,7 @@ object App extends skel.Server {
 
       case "jdbc" :: db :: Nil => new WalletStoreDB(c,s"mysql://${db}")
       case "jdbc" :: typ :: db :: Nil => new WalletStoreDB(c,s"${typ}://${db}")
+
       case "mem" :: _ => new WalletStoreMem()
       case _ => 
         Console.err.println(s"Uknown datastore: '${config.datastore}'")

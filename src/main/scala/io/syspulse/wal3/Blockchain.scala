@@ -67,4 +67,5 @@ class Blockchains(bb:Seq[String]) {
 
 object Blockchains {
   def apply(bb:Seq[String]) = new Blockchains(bb)
+  def apply() = new Blockchains(Seq())
 }
