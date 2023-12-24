@@ -70,3 +70,20 @@ Example:
 ```
 ./run-wal3.sh --datastore=postgres:// --blockchains=1=mainnet=http://infura,534352=scroll=https://rpc.scroll.io
 ```
+
+---
+
+## Tests
+
+For KMS tests, run local aws:
+
+```
+docker run -p 4599:8080 --mount type=bind,source="$(pwd)"/data_kms,target=/data nsmithuk/local-kms
+
+export AWS_ACCESS_KEY_ID="111"
+export AWS_SECRET_ACCESS_KEY="222"
+export AWS_REGION=eu-west-1
+export AWS_ACCOUNT=0000
+
+export AWS_ENDPOINT=http://localhost:4599
+```

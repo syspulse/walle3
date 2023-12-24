@@ -7,8 +7,9 @@ import io.jvm.uuid._
 
 import io.syspulse.skel.store.Store
 import io.syspulse.wal3.WalletSecret
+import io.syspulse.wal3.signer.WalletSigner
 
-trait WalletStore extends Store[WalletSecret,String] {
+trait WalletStore extends Store[WalletSecret,String] {  
   
   def getKey(w: WalletSecret): String = w.addr
   
@@ -29,6 +30,6 @@ trait WalletStore extends Store[WalletSecret,String] {
   //   this.+++(w).map(_ => this)
   // }
   def all:Seq[WalletSecret] = all(None)
-  def del(addr:String):Try[WalletStore] = del(addr).map(_ => this)
+  def del(addr:String):Try[WalletStore] = del(addr).map(_ => this)  
 }
 
