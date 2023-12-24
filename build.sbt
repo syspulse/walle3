@@ -310,7 +310,8 @@ lazy val wal3_signer = (project in file("."))
     appDockerConfig("wal3-signer","io.syspulse.wal3.App"),
 
     libraryDependencies ++= libSkel ++ Seq(  
-
+      libAWSJavaKMS,
+      libBouncyCastle
     ),    
   )
 
