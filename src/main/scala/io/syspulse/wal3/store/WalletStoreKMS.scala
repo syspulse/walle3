@@ -30,20 +30,22 @@ import com.amazonaws.services.kms.model.CreateAliasRequest
 import com.amazonaws.services.kms.model.ListAliasesRequest
 import java.security.KeyFactory
 import java.security.spec.X509EncodedKeySpec
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.asn1.ASN1Sequence
-import org.bouncycastle.asn1.x9.ECNamedCurveTable
-import org.bouncycastle.asn1.x509.AlgorithmIdentifier
-import org.bouncycastle.asn1.x9.X9ObjectIdentifiers
-import org.bouncycastle.asn1.sec.SECObjectIdentifiers
+// import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+// import org.bouncycastle.asn1.ASN1Sequence
+// import org.bouncycastle.asn1.x9.ECNamedCurveTable
+// import org.bouncycastle.asn1.x509.AlgorithmIdentifier
+// import org.bouncycastle.asn1.x9.X9ObjectIdentifiers
+// import org.bouncycastle.asn1.sec.SECObjectIdentifiers
 import java.nio.ByteBuffer
 import io.syspulse.skel.crypto.Eth
+import com.amazonaws.services.kms.model.DeleteAliasRequest
 
 case class KeyData(keyId:String,addr:String,oid:Option[UUID])
 
 class WalletStoreKMS(tag:String = "") extends WalletStore {
   val log = Logger(s"${this}")
   
+  val CYPHER = "KMS"
   val region = sys.env.get("AWS_REGION").getOrElse("")
   val account = sys.env.get("AWS_ACCOUNT").getOrElse("")
 
@@ -150,7 +152,7 @@ class WalletStoreKMS(tag:String = "") extends WalletStore {
           pk = pk, 
           addr = addr,
 
-          cypher = "KMS",
+          cypher = CYPHER,
           metadata = keyId
         )
         Success(w1)
@@ -161,84 +163,41 @@ class WalletStoreKMS(tag:String = "") extends WalletStore {
   def +(w:WalletSecret):Try[WalletStoreKMS] = +++(w).map(_ => this)
 
   def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = {         
-    ???(addr,oid) match {
-      case Success(w) if w.oid == oid =>        
-        val req = new ScheduleKeyDeletionRequest()
-          .withPendingWindowInDays(7)
-          .withKeyId(w.metadata)
-          Success(w)                      
-      case _ => 
-        Failure(new Exception(s"not found: ${addr}"))
-    }
+    for {
+      w <- ???(addr,oid)
+      _ <- {
+          val req = new ScheduleKeyDeletionRequest()
+            .withPendingWindowInDays(7)
+            .withKeyId(w.metadata)
+        
+          try {
+            val res = kms.scheduleKeyDeletion(req)
+            log.info(s"${addr}: key(${res.getKeyId()}): schedule delete: '${res.getDeletionDate()}'")
+            Success(w)
+
+          } catch {
+            case e:Exception =>
+              Failure(e)
+          }
+        }
+      _ <- {
+        // delete alias
+        val req = new DeleteAliasRequest()
+          .withAliasName(alias(w.addr,w.oid))
+              
+        try {
+          val res = kms.deleteAlias(req)
+          Success(w)
+
+        } catch {
+          case e:Exception =>
+            Failure(e)
+        }
+      }        
+    } yield w
   }
     
-  def ???(addr:String,oid:Option[UUID]):Try[WalletSecret] = {
-    // var marker = "_"
-    // var keys = Seq[KeyData]()
-    // var found:Option[KeyData] = None
-
-    // while( marker != "" && found == None ) {
-    //   val req0 = new ListAliasesRequest().withLimit(100)
-    //   val res0 = try {
-    //     kms.listAliases(req0)
-    //   } catch {
-    //     case e:Exception => 
-    //       return Failure(new Exception(s"not found: ${addr}",e))
-    //   }
-      
-    //   val keys0 = res0.getAliases.asScala.toList.map( a => 
-    //     a.getAliasName().split("/").toList match {
-    //       case "alias" :: addr :: Nil => 
-    //         KeyData(a.getTargetKeyId,addr,None)
-    //       case "alias" :: addr :: "" :: Nil => 
-    //         KeyData(a.getTargetKeyId,addr,None)
-    //       case "alias" :: addr :: oid :: Nil =>
-    //         KeyData(a.getTargetKeyId,addr,Some(UUID(oid)))
-    //       case _ => 
-    //         log.error(s"Invalid Alias: ${a}")
-    //         return Failure(new Exception(s"not found: ${addr}: invalid alias: ${a}"))
-    //     }        
-    //   )
-
-    //   log.info(s"keys0: ${keys0}")
-    //   keys = keys ++ keys0
-
-    //   found = keys0.find(ka => ka.addr == addr.toLowerCase())
-
-    //   if(res0.getTruncated())
-    //     marker = res0.getNextMarker()
-    //   else 
-    //     marker = ""
-    // }
-    
-    // if(!found.isDefined) {      
-    //   return Failure(new Exception(s"not found: ${addr}"))
-    // }
-
-    // if(oid != None && found.get.oid != oid) {
-    //   return Failure(new Exception(s"not found: ${addr} (oid access)"))
-    // }
-
-    // val req = new GetPublicKeyRequest().withKeyId(found.get.keyId)
-    // try { 
-    //   val res = kms.getPublicKey(req)      
-    //   // case Some(w) if(w.oid == oid) => Success(w)
-      
-    //   val pkBytes = extractPK(res.getPublicKey())          
-    //   Success(WalletSecret(
-    //     sk = "",
-    //     pk = Util.hex(pkBytes),
-    //     addr = addr,
-    //     oid = found.get.oid,
-
-    //     cypher = "KMS",
-    //     metadata = found.get.keyId
-    //   ))
-    // } catch {
-    //   case e:Exception => 
-    //     log.error("",e)
-    //     Failure(new Exception(s"not found: ${addr}",e))
-    // }
+  def ???(addr:String,oid:Option[UUID]):Try[WalletSecret] = {    
     list(Some(addr),oid).toList match {
       case w :: _ => 
         Success(w)
@@ -325,7 +284,7 @@ class WalletStoreKMS(tag:String = "") extends WalletStore {
           addr = key.addr,
           oid = key.oid,
 
-          cypher = "KMS",
+          cypher = CYPHER,
           metadata =key.keyId
         ))
 

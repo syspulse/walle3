@@ -311,7 +311,7 @@ lazy val wal3_signer = (project in file("."))
 
     libraryDependencies ++= libSkel ++ Seq(  
       libAWSJavaKMS,
-      libBouncyCastle
+      //libBouncyCastle
     ),    
   )
 
