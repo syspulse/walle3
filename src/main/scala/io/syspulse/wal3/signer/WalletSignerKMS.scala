@@ -31,6 +31,13 @@ import io.syspulse.skel.util.Util
 import org.web3j.protocol.core.methods.response.EthSign
 import io.syspulse.wal3.cypher.Cypher
 import io.syspulse.wal3.Blockchains
+import org.web3j.crypto.RawTransaction
+import java.math.BigInteger
+import org.web3j.crypto.TransactionEncoder
+import com.amazonaws.services.kms.model.SignRequest
+import org.web3j.crypto.Sign
+import org.web3j.crypto.ECDSASignature
+import org.web3j.crypto.Hash
 
 case class KeyData(keyId:String,addr:String,oid:Option[UUID])
 
@@ -78,7 +85,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
           
   // The first 23 bytes are just ASN.1 stuff. The remaining 65 bytes contain the uncompressed public key.
   // The first hexadecimal character is 04 (to signify a 65-byte uncompressed public key), followed by the 32-byte X value, followed by the 32-byte Y value         
-  def extractPK(b:ByteBuffer) = {
+  def extractBytes(b:ByteBuffer) = {
     b.rewind()
     val der = new Array[Byte](b.remaining())          
     b.get(der)
@@ -123,7 +130,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
         val req = new GetPublicKeyRequest().withKeyId(keyId)
         try { 
           val res = kms.getPublicKey(req)
-          val pkBytes = extractPK(res.getPublicKey())
+          val pkBytes = extractBytes(res.getPublicKey())
           Success(
             Util.hex(pkBytes)
           )
@@ -170,22 +177,95 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
            to:String,nonce:Long,data:String,
            gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
            value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
+    
+    val rawTx: RawTransaction = 
+      RawTransaction.createTransaction(
+        chainId,
+        BigInteger.valueOf(nonce), 
+        BigInteger.valueOf(gasLimit), 
+        to,            
+        value.bigInteger,
+        data,
+        gasTip.bigInteger,
+        gasPrice.bigInteger
+      )
         
-    // for {
-    //   web3 <- blockchains.getWeb3(chainId)
-    //   sig <- Eth.signTransaction(
-    //     sk = sk,
-    //     to = to, 
-    //     value = value, 
-    //     nonce = nonce, 
-    //     gasPrice = gasPrice, 
-    //     gasTip = gasTip, 
-    //     gasLimit = gasLimit,
-    //     data = if(data.isBlank) None else Some(data),
-    //     chainId = chainId
-    //   )
-    // } yield sig    
-    Failure(new Exception("not implemented"))
+    val encodedTransaction = TransactionEncoder.encode(rawTx)
+
+    log.info(s"Encoded TX: ${Util.hex(encodedTransaction)}")
+
+    val keyId = ws.metadata    
+    
+    for {
+      sigVRS <- {
+        try {
+          val digest = Hash.sha3(encodedTransaction)
+          log.info(s"Encoded TX hash: ${Util.hex(digest)}")
+
+          val req = new SignRequest()
+            .withKeyId(keyId)
+            .withSigningAlgorithm("ECDSA_SHA_256")
+            .withMessageType("DIGEST")
+            .withMessage(ByteBuffer.wrap(digest))
+          
+          val res = kms.sign(req)
+          
+          val b = res.getSignature()
+          b.rewind()
+          val sigDer = new Array[Byte](b.remaining())          
+          b.get(sigDer)
+              
+          log.info(s"DER sig: ${Util.hex(sigDer)} (${(Util.hex(sigDer).size-2)/2})")
+          // echo "MEUCIBZKDXa2ddxjOsv1CnfwF/A5/DBsfLBS8DwJfTKQYNrgAiEAs80CvDRgv0Q14Qzx3Geb8OOnVDvK/epZWKeliq1Bqks=" | base64 -d | hexdump -C
+          // 00000000  30 45 02 20 16 4a 0d 76  b6 75 dc 63 3a cb f5 0a  |0E. .J.v.u.c:...|
+          // 00000010  77 f0 17 f0 39 fc 30 6c  7c b0 52 f0 3c 09 7d 32  |w...9.0l|.R.<.}2|
+          // 00000020  90 60 da e0 02 21 00 b3  cd 02 bc 34 60 bf 44 35  |.`...!.....4`.D5|
+          // 00000030  e1 0c f1 dc 67 9b f0 e3  a7 54 3b ca fd ea 59 58  |....g....T;...YX|
+          // 00000040  a7 a5 8a ad 41 aa 4b                              |....A.K|
+          // 00000047
+          // echo "MEUCIBZKDXa2ddxjOsv1CnfwF/A5/DBsfLBS8DwJfTKQYNrgAiEAs80CvDRgv0Q14Qzx3Geb8OOnVDvK/epZWKeliq1Bqks=" | base64 -d >sig1.bin        
+          // openssl asn1parse -inform DER -in sig1.bin 
+          //  0:d=0  hl=2 l=  69 cons: SEQUENCE          
+          //  2:d=1  hl=2 l=  32 prim: INTEGER           :164A0D76B675DC633ACBF50A77F017F039FC306C7CB052F03C097D329060DAE0
+          // 36:d=1  hl=2 l=  33 prim: INTEGER           :B3CD02BC3460BF4435E10CF1DC679BF0E3A7543BCAFDEA5958A7A58AAD41AA4B
+          
+          //  30 45 02 20
+          val rSize = sigDer.drop(3).take(1)(0).toInt
+          val r = sigDer.drop(4).take(rSize)
+          // 02 21
+          val sSize = sigDer.drop(4).drop(rSize).drop(1).take(1)(0).toInt
+          val s = sigDer.drop(4).drop(rSize).drop(1).drop(1).take(sSize)
+
+          log.info(s"\nr=${Util.hex(r)}\ns=${Util.hex(s)}\npk=${ws.pk} (${(ws.pk.size-2)/2})")
+          
+          val ecdsaSig = new ECDSASignature(new java.math.BigInteger(r),new java.math.BigInteger(s))
+          //val publicKey = new java.math.BigInteger(Util.fromHexString(ws.pk))
+          val publicKey = new java.math.BigInteger(Eth.normalize(Util.fromHexString(ws.pk),65))
+          val messageHash = digest//Hash.sha3(encodedTransaction)
+
+          val sigData = Sign.createSignatureData(ecdsaSig,publicKey,messageHash)
+          
+          val sigVRS = TransactionEncoder.encode(rawTx,sigData)
+          log.info(s"sig: ${Util.hex(sigVRS)}")
+
+          Success(sigVRS)
+        } catch {
+          case e:Exception =>
+            log.error(s"",e)
+            Failure(new Exception(s"could not sign: ${ws.addr}",e))
+        }
+      }
+      sig <- {
+        Success(Util.hex(sigVRS))
+        // try {
+        //   val data = TransactionEncoder.encode(rawTx, signatureData)
+        //   Success(data)
+        // } catch {
+        //   case e:Exception => 
+        //     Failure(new Exception(s"could not sign: ${ws.addr}",e))
+        // }
+      }
+    } yield sig    
   }
 
   def list(addr:Option[String] = None,oid:Option[UUID] = None):Seq[WalletSecret] = {    
@@ -258,7 +338,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
       try { 
         val res = kms.getPublicKey(req)        
         
-        val pkBytes = extractPK(res.getPublicKey())          
+        val pkBytes = extractBytes(res.getPublicKey())          
         
         Some(WalletSecret(
           sk = "",

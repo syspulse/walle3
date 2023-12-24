@@ -75,7 +75,12 @@ Example:
 
 ## Tests
 
-For KMS tests, run local aws:
+For KMS tests, run local env
+
+KMS: https://github.com/nsmithuk/local-kms?tab=readme-ov-file
+
+Tutorial: https://nsmith.net/aws-kms-cli
+
 
 ```
 docker run -p 4599:8080 --mount type=bind,source="$(pwd)"/data_kms,target=/data nsmithuk/local-kms
