@@ -17,7 +17,10 @@ Wallet Signer
 | mem://    |  Used only for testing. Stores wallets in the memory              |
 | dir://[dir]    | Stores wallets in encrypted files (in the directory) |
 | jdbc:// | JDBC (Posgtres DB by default) |
+| kms://[uri] | AWS KMS ECDSA_SHA_256 (custom Endpoiint  is supported)|
 |     | 
+
+__ATTENTION__: If `kms://` datastore is selected, only `kms://` Signer is supported and Cypher is ignored
 
 Example:
 
@@ -29,6 +32,16 @@ Example:
 
 ```
 ./run-wal3.sh --datastore=dir://./store
+```
+
+AWS KMS:
+```
+./run-wal3.sh --datastore=kms://
+```
+
+Custom KMS:
+```
+./run-wal3.sh --datastore=kms://http://localhost:4599
 ```
 
 
@@ -48,7 +61,7 @@ __ATTENTION__: AWS Credentials must contain `AWS_REGION` together with (AWS_ACCE
 Example:
 
 ```
-./run-wal3.sh --cypher=kms://arn:aws:kms:eu-west-1:$ACCOUNT:key/e7d5e92b-5553-454c-a73e-2ab104c5e087
+./run-wal3.sh --cypher=kms://arn:aws:kms:eu-west-1:$AWS_ACCOUNT:key/e7d5e92b-5553-454c-a73e-2ab104c5e087
 ```
 
 ## Signer
@@ -57,13 +70,17 @@ Example:
 |-------------|--------------|
 | eth1://    |  secp256k1 Signer             |
 | eth2://    | BLS Signer (not supported for transaction) |
-| kms://[arn] | AWS KMS SECP256K1 keyId |
+| kms://[uri]| AWS KMS SECP256K1 |
 |     | 
+
+__NOTE__: If signer is `kms://`, Datastore must be kms:// as well
 
 
 ## Blockchains
 
 Wallet operations (`balance`, `signature`, `transaction`) require connection to the RPC node.
+
+The format: `chain_id`=`name`=`uri`
 
 Example:
 
