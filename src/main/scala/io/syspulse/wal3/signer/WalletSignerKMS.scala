@@ -202,6 +202,8 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
           val digest = Hash.sha3(encodedTransaction)
           log.info(s"Encoded TX hash: ${Util.hex(digest)}")
 
+          // https://github.com/lucashenning/aws-kms-ethereum-signing/blob/master/aws-kms-sign.ts
+          // https://luhenning.medium.com/the-dark-side-of-the-elliptic-curve-signing-ethereum-transactions-with-aws-kms-in-javascript-83610d9a6f81
           val req = new SignRequest()
             .withKeyId(keyId)
             .withSigningAlgorithm("ECDSA_SHA_256")

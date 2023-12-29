@@ -1,4 +1,4 @@
-# wal3-signer
+# walle3
 
 Wallet Signer
 

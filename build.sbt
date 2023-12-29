@@ -307,7 +307,7 @@ lazy val wal3_signer = (project in file("."))
     sharedConfigDocker,
     dockerBuildxSettings,
 
-    appDockerConfig("wal3-signer","io.syspulse.wal3.App"),
+    appDockerConfig("walle3","io.syspulse.wal3.App"),
 
     libraryDependencies ++= libSkel ++ Seq(  
       libAWSJavaKMS,
