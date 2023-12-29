@@ -26,7 +26,7 @@ object WalletRegistry {
   final case class GetWallet(addr:String,oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
   
   final case class CreateWallet(oid:Option[UUID], req: WalletCreateReq, replyTo: ActorRef[Try[Wallet]]) extends Command
-  final case class RandomWallet(oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
+  final case class RandomWallet(oid:Option[UUID], req: WalletRandomReq, replyTo: ActorRef[Try[Wallet]]) extends Command
 
   final case class DeleteWallet(addr: String, oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
 
@@ -92,7 +92,7 @@ object WalletRegistry {
 
         Behaviors.same
       
-      case RandomWallet(oid, replyTo) =>        
+      case RandomWallet(oid, req, replyTo) =>        
 
         val w = for {
           ws <- signer.random(oid)

@@ -49,7 +49,7 @@ import io.syspulse.skel.service.CommonRoutes
 import io.syspulse.skel.Command
 
 import io.syspulse.skel.auth._
-import io.syspulse.skel.auth.permissions.rbac.Permissions
+import io.syspulse.skel.auth.permissions.Permissions
 import io.syspulse.skel.auth.RouteAuthorizers
 
 import io.syspulse.wal3._
@@ -81,7 +81,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   
   def createWallet(oid:Option[UUID],req: WalletCreateReq): Future[Try[Wallet]] = registry.ask(CreateWallet(oid,req, _))
   def deleteWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(DeleteWallet(addr,oid, _))
-  def randomWallet(oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,_))
+  def randomWallet(oid:Option[UUID],req: WalletRandomReq): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,req,_))
   
   def signWallet(addr:String, oid:Option[UUID], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
   def txWallet(addr:String, oid:Option[UUID], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
@@ -133,7 +133,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   )
   def createWalletRoute(oid:Option[UUID]) = post {
     entity(as[WalletCreateReq]) { req =>
-      onSuccess(createWallet(oid,req)) { r =>
+      onSuccess(createWallet(oid.orElse(req.oid),req)) { r =>
         metricCreateCount.inc()
         complete(StatusCodes.Created, r)
       }
@@ -147,9 +147,11 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     responses = Array(new ApiResponse(responseCode = "200", description = "Wallet",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
   def randomWalletRoute(oid:Option[UUID]) = post { 
-    onSuccess(randomWallet(oid)) { r =>
-      metricCreateCount.inc()
-      complete(StatusCodes.Created, r)
+    entity(as[WalletRandomReq]) { req =>
+      onSuccess(randomWallet(oid.orElse(req.oid),req)) { r =>
+        metricCreateCount.inc()
+        complete(StatusCodes.Created, r)
+      }
     }
   }
 
@@ -161,7 +163,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   )
   def signWalletRoute(addr:String,oid:Option[UUID]) = post {
     entity(as[WalletSignReq]) { req =>
-      onSuccess(signWallet(addr,oid,req)) { r =>
+      onSuccess(signWallet(addr,oid.orElse(req.oid),req)) { r =>
         metricSignCount.inc()
         complete(r)
       }
@@ -176,7 +178,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   )
   def txWalletRoute(addr:String,oid:Option[UUID]) = post {
     entity(as[WalletTxReq]) { req =>
-      onSuccess(txWallet(addr,oid,req)) { r =>
+      onSuccess(txWallet(addr,oid.orElse(req.oid),req)) { r =>
         metricTxCount.inc()
         complete(r)
       }

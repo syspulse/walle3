@@ -296,7 +296,7 @@ def appAssemblyConfig(appName:String,appMainClass:String) =
 
 
 // ======================================================================================================================
-lazy val wal3_signer = (project in file("."))
+lazy val walle3 = (project in file("."))
   .enablePlugins(JavaAppPackaging)
   .enablePlugins(DockerPlugin)
   .enablePlugins(AshScriptPlugin)
