@@ -33,14 +33,19 @@ class Blockchains(bb:Seq[String]) {
   )
 
   def ++(bb:Seq[String]):Blockchains = {
-    val newBlockchains = bb.map(b =>{
-      b.trim.split("=").toList match {
+    val newBlockchains = bb.flatMap(b =>{
+      b.replaceAll("\n","").split("=").toList match {
         case id :: name :: rpc :: _ => 
-          ( id.toLong ->  Blockchain(name,id.toLong,rpc), id.toLong -> Eth.web3(rpc) )
+          val bid = id.trim.toLong
+          Some(( bid ->  Blockchain(name.trim(),bid,rpc), bid -> Eth.web3(rpc.trim()) ))
         case id :: rpc :: Nil => 
-          ( id.toLong ->  Blockchain(id.toString,id.toLong,rpc), id.toLong -> Eth.web3(rpc) )
+          val bid = id.trim.toLong
+          Some(( bid ->  Blockchain(bid.toString,bid,rpc), bid -> Eth.web3(rpc.trim()) ))
         case rpc :: Nil => 
-          ( 1L ->  Blockchain("mainnet",1L,rpc), 1L -> Eth.web3(rpc) )
+          if(rpc.isBlank())
+            None
+          else
+            Some(( 1L ->  Blockchain("mainnet",1L,rpc), 1L -> Eth.web3(rpc) ))
       }
     })
     blockchains = blockchains ++ newBlockchains.map(_._1).toMap
@@ -62,10 +67,12 @@ class Blockchains(bb:Seq[String]) {
 
   def all():Seq[Blockchain] = blockchains.values.toSeq
 
+  // add default blockchains
   this.++(bb)
 }
 
 object Blockchains {
   def apply(bb:Seq[String]) = new Blockchains(bb)
+  def apply(bb:String) = new Blockchains(bb.split(",").toSeq)
   def apply() = new Blockchains(Seq())
 }
