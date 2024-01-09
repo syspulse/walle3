@@ -187,7 +187,7 @@ object WalletRegistry {
         Behaviors.same
 
       case BalanceWallet(addr, oid, req, replyTo) =>        
-        
+        log.info(s"asking balances: ${oid}: ${addr}: ${req.blockchains}")
         val balances:Try[Seq[BlockchainBalance]] = for {
           // ws0 <- store.???(addr,oid)
           // b <- if(oid == None) Success(true) else Success(ws0.oid == oid)

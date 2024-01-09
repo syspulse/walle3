@@ -112,7 +112,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     complete(getWallets(oid))
   }
 
-  @DELETE @Path("/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
+  @DELETE @Path("/tenant/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Delete Wallet by addr",
     parameters = Array(new Parameter(name = "id", in = ParameterIn.PATH, description = "Wallet addr")),
     responses = Array(
@@ -125,7 +125,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/tenant/{oid}") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Create Wallet",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletCreateReq])))),
@@ -140,7 +140,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/random") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/tenant/{oid}/random") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Create Random Wallet",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletRandomReq])))),
@@ -155,7 +155,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/{addr}/sign") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/tenant/{oid}/{addr}/sign") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Sign Transaction",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletSignReq])))),
@@ -170,7 +170,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/{addr}/tx") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/tenant/{oid}/{addr}/tx") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Send Transaction",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletTxReq])))),
@@ -185,17 +185,15 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @GET @Path("/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
+  @GET @Path("/tenant/{oid}/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Balances",content = Array(new Content(schema = new Schema(implementation = classOf[WalletBalance])))))
   )
-  def getWalletBalanceRoute(addr:String,oid:Option[String]) = get {
+  def getWalletBalanceRoute(addr:String,oid:Option[String],blockchain:Option[String]) = get {
     metricBalanceCount.inc()
-    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = Seq())))
+    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = if(blockchain.isDefined) Seq(blockchain.get) else Seq())))
   }
-
-
   
   val corsAllow = CorsSettings(system.classicSystem)
     //.withAllowGenericHttpRequests(true)
@@ -252,12 +250,20 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
             }
           } ~
           pathPrefix("balance") {
+            pathPrefix(Segment) { blockchain => 
+              authenticate()(authn => {
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                    getWalletBalanceRoute(addr,None,Some(blockchain))
+                  else
+                    getWalletBalanceRoute(addr,authn.getUser.map(_.toString),Some(blockchain))
+              })
+            } ~
             pathEndOrSingleSlash { 
               authenticate()(authn =>
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
-                  getWalletBalanceRoute(addr,None)
+                  getWalletBalanceRoute(addr,None,None)
                 else
-                  getWalletBalanceRoute(addr,authn.getUser.map(_.toString))
+                  getWalletBalanceRoute(addr,authn.getUser.map(_.toString),None)
               )
             }
           } ~
@@ -301,9 +307,14 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
               }
             } ~
             pathPrefix("balance") {
+              pathPrefix(Segment) { blockchain => 
+                authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  getWalletBalanceRoute(addr,Some(oid),Some(blockchain))
+                })
+              } ~
               pathEndOrSingleSlash { 
                 authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
-                  getWalletBalanceRoute(addr,Some(oid))
+                  getWalletBalanceRoute(addr,Some(oid),None)
                 })
               }
             } ~

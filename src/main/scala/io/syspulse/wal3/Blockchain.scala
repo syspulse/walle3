@@ -18,12 +18,13 @@ class Blockchains(bb:Seq[String]) {
   override def toString():String = blockchains.toString
 
   protected var blockchains:Map[Long,Blockchain] = Map(
-    // 1L -> Blockchain("mainnet",1L, "https://eth.drpc.org"),
+    // 1L -> Blockchain("ethereum",1L, "https://eth.drpc.org"),
     // 42161L -> Blockchain("arbitrum",42161L,"https://rpc.ankr.com/arbitrum"),
     // 10L -> Blockchain("optimism",10L,"https://optimism-mainnet.public.blastapi.io"),
     // 137L -> Blockchain("polygon",137L,"https://polygon.blockpi.network/v1/rpc/public"),
     // 56L -> Blockchain("bsc",56L,"https://rpc-bsc.48.club"),
     // 100L -> Blockchain("gnosis",100L,"https://rpc.gnosis.gateway.fm"),
+    // 250L -> Blockchain("fantom",100L,"https://rpc.fantom.gateway.fm"),
 
     // 534352L -> Blockchain("scroll",534352L,"https://rpc.scroll.io"),
     // 324L -> Blockchain("zksync",324L,"https://mainnet.era.zksync.io"),
