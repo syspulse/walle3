@@ -39,7 +39,7 @@ import org.web3j.crypto.Sign
 import org.web3j.crypto.ECDSASignature
 import org.web3j.crypto.Hash
 
-case class KeyData(keyId:String,addr:String,oid:Option[UUID])
+case class KeyData(keyId:String,addr:String,oid:Option[String])
 
 abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:String = "") extends WalletSigner {
   val log = Logger(s"${this}")
@@ -63,18 +63,18 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
 
   log.info(s"KMS(${uri}): ${kms}")  
 
-  def random(oid:Option[UUID]):Try[WalletSecret] = {
+  def random(oid:Option[String]):Try[WalletSecret] = {
     log.info(s"random key: ${oid}")
     create(oid)
   }
 
-  def create(oid:Option[UUID],sk:String):Try[WalletSecret] = {
+  def create(oid:Option[String],sk:String):Try[WalletSecret] = {
     Failure(new Exception(s"KMS create from SK is not supported: ${oid}"))
   }
 
   // ---- KMS --------------------------------------------------------------------------------------------------------------
 
-  def alias(addr:String,oid:Option[UUID]) = s"alias/${addr.toLowerCase()}/${if(oid.isDefined) oid.get.toString else ""}"
+  def alias(addr:String,oid:Option[String]) = s"alias/${addr.toLowerCase()}/${if(oid.isDefined) oid.get.toString else ""}"
 
   //val pkBytes =  KeyFactory.getInstance("ECDSA").generatePublic(new X509EncodedKeySpec(der)).getEncoded()
   //val pkBytes = SubjectPublicKeyInfo.getInstance(ASN1Sequence.getInstance(der)).parsePublicKey().getEncoded()
@@ -98,7 +98,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
     pkBytes
   }
 
-  def create(oid:Option[UUID]):Try[WalletSecret] = {
+  def create(oid:Option[String]):Try[WalletSecret] = {
     for {
       keyId <- {
         val req = new CreateKeyRequest()
@@ -270,7 +270,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
     } yield sig    
   }
 
-  def list(addr:Option[String] = None,oid:Option[UUID] = None):Seq[WalletSecret] = {    
+  def list(addr:Option[String] = None,oid:Option[String] = None):Seq[WalletSecret] = {    
     var marker = "_"
     var keys = Seq[KeyData]()
     var found:Option[KeyData] = None
@@ -292,7 +292,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
           case "alias" :: addr :: "" :: Nil => 
             Some(KeyData(a.getTargetKeyId,addr,None))
           case "alias" :: addr :: oid :: Nil =>
-            Some(KeyData(a.getTargetKeyId,addr,Some(UUID(oid))))
+            Some(KeyData(a.getTargetKeyId,addr,Some(oid)))
           case _ => 
             log.warn(s"Invalid Alias: ${a}")
             None

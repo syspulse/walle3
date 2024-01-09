@@ -76,16 +76,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   val metricTxCount: Counter = Counter.build().name("wal3_tx_total").help("wal3 transactions").register(TelemetryRegistry.registry)
   val metricBalanceCount: Counter = Counter.build().name("wal3_balance_total").help("wal3 balances").register(TelemetryRegistry.registry)
         
-  def getWallets(oid:Option[UUID]): Future[Wallets] = registry.ask(GetWallets(oid, _))
-  def getWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(GetWallet(addr, oid, _))
+  def getWallets(oid:Option[String]): Future[Wallets] = registry.ask(GetWallets(oid, _))
+  def getWallet(addr: String,oid:Option[String]): Future[Try[Wallet]] = registry.ask(GetWallet(addr, oid, _))
   
-  def createWallet(oid:Option[UUID],req: WalletCreateReq): Future[Try[Wallet]] = registry.ask(CreateWallet(oid,req, _))
-  def deleteWallet(addr: String,oid:Option[UUID]): Future[Try[Wallet]] = registry.ask(DeleteWallet(addr,oid, _))
-  def randomWallet(oid:Option[UUID],req: WalletRandomReq): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,req,_))
+  def createWallet(oid:Option[String],req: WalletCreateReq): Future[Try[Wallet]] = registry.ask(CreateWallet(oid,req, _))
+  def deleteWallet(addr: String,oid:Option[String]): Future[Try[Wallet]] = registry.ask(DeleteWallet(addr,oid, _))
+  def randomWallet(oid:Option[String],req: WalletRandomReq): Future[Try[Wallet]] = registry.ask(RandomWallet(oid,req,_))
   
-  def signWallet(addr:String, oid:Option[UUID], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
-  def txWallet(addr:String, oid:Option[UUID], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
-  def balanceWallet(addr:String, oid:Option[UUID], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
+  def signWallet(addr:String, oid:Option[String], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
+  def txWallet(addr:String, oid:Option[String], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
+  def balanceWallet(addr:String, oid:Option[String], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
 
 
   @GET @Path("/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
@@ -93,7 +93,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     parameters = Array(new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet addr")),
     responses = Array(new ApiResponse(responseCode="200",description = "Wallet returned",content=Array(new Content(schema=new Schema(implementation = classOf[Wallet])))))
   )
-  def getWalletRoute(addr: String,oid:Option[UUID]) = get {
+  def getWalletRoute(addr: String, oid:Option[String]) = get {
     rejectEmptyResponse {
       onSuccess(getWallet(addr,oid)) { r =>
         metricGetCount.inc()
@@ -107,7 +107,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     responses = Array(
       new ApiResponse(responseCode = "200", description = "List of Wallets",content = Array(new Content(schema = new Schema(implementation = classOf[Wallets])))))
   )
-  def getWalletsRoute(oid:Option[UUID]) = get {
+  def getWalletsRoute(oid:Option[String]) = get {
     metricGetCount.inc()
     complete(getWallets(oid))
   }
@@ -118,7 +118,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Wallet deleted",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
-  def deleteWalletRoute(addr: String,oid:Option[UUID]) = delete {
+  def deleteWalletRoute(addr: String,oid:Option[String]) = delete {
     onSuccess(deleteWallet(addr,oid)) { r =>
       metricDeleteCount.inc()      
       complete(StatusCodes.OK, r)
@@ -131,7 +131,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletCreateReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Wallet",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
-  def createWalletRoute(oid:Option[UUID]) = post {
+  def createWalletRoute(oid:Option[String]) = post {
     entity(as[WalletCreateReq]) { req =>
       onSuccess(createWallet(oid.orElse(req.oid),req)) { r =>
         metricCreateCount.inc()
@@ -146,7 +146,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletRandomReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Wallet",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
-  def randomWalletRoute(oid:Option[UUID]) = post { 
+  def randomWalletRoute(oid:Option[String]) = post { 
     entity(as[WalletRandomReq]) { req =>
       onSuccess(randomWallet(oid.orElse(req.oid),req)) { r =>
         metricCreateCount.inc()
@@ -161,7 +161,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletSignReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletSig])))))
   )
-  def signWalletRoute(addr:String,oid:Option[UUID]) = post {
+  def signWalletRoute(addr:String,oid:Option[String]) = post {
     entity(as[WalletSignReq]) { req =>
       onSuccess(signWallet(addr,oid.orElse(req.oid),req)) { r =>
         metricSignCount.inc()
@@ -176,7 +176,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletTxReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Transaction Hash",content = Array(new Content(schema = new Schema(implementation = classOf[WalletTx])))))
   )
-  def txWalletRoute(addr:String,oid:Option[UUID]) = post {
+  def txWalletRoute(addr:String,oid:Option[String]) = post {
     entity(as[WalletTxReq]) { req =>
       onSuccess(txWallet(addr,oid.orElse(req.oid),req)) { r =>
         metricTxCount.inc()
@@ -190,7 +190,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Balances",content = Array(new Content(schema = new Schema(implementation = classOf[WalletBalance])))))
   )
-  def getWalletBalanceRoute(addr:String,oid:Option[UUID]) = get {
+  def getWalletBalanceRoute(addr:String,oid:Option[String]) = get {
     metricBalanceCount.inc()
     complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = Seq())))
   }
@@ -203,33 +203,33 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     .withAllowedMethods(Seq(HttpMethods.OPTIONS,HttpMethods.GET,HttpMethods.POST,HttpMethods.PUT,HttpMethods.DELETE,HttpMethods.HEAD))
 
   override def routes: Route = cors(corsAllow) {
-      concat(
-        pathEndOrSingleSlash {
-          concat(
-            authenticate()(authn => 
-              if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
-                getWalletsRoute(None) ~
-                createWalletRoute(None)
-                // randomWalletRoute(None)
-              } 
-              else {
-                getWalletsRoute(authn.getUser)
-                //createWalletRoute(authn.getUser) ~
-                //randomWalletRoute(authn.getUser)
-              }
-            ),            
-          )
-        },
+    concat(
+      pathEndOrSingleSlash {
+        concat(
+          authenticate()(authn => 
+            authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+              getWalletsRoute(None) ~
+              createWalletRoute(None)                
+            // } 
+            // else {
+            //   getWalletsRoute(authn.getUser)
+            // }
+          })   
+        )
+      },
+
+      // --------------------------------- User Wallet
+      pathPrefix("user") { 
         pathPrefix("random") {
           pathEndOrSingleSlash { 
             authenticate()(authn =>
               if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                 randomWalletRoute(None)
               else
-                randomWalletRoute(authn.getUser)
+                randomWalletRoute(authn.getUser.map(_.toString))
             )
           }
-        },
+        } ~
         pathPrefix(Segment) { addr => 
           pathPrefix("sign") {
             pathEndOrSingleSlash { 
@@ -237,7 +237,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                   signWalletRoute(addr,None)
                 else
-                  signWalletRoute(addr,authn.getUser)
+                  signWalletRoute(addr,authn.getUser.map(_.toString))
               )
             }
           } ~
@@ -247,7 +247,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                   txWalletRoute(addr,None)
                 else
-                  txWalletRoute(addr,authn.getUser)
+                  txWalletRoute(addr,authn.getUser.map(_.toString))
               )
             }
           } ~
@@ -257,7 +257,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                   getWalletBalanceRoute(addr,None)
                 else
-                  getWalletBalanceRoute(addr,authn.getUser)
+                  getWalletBalanceRoute(addr,authn.getUser.map(_.toString))
               )
             }
           } ~
@@ -267,12 +267,61 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 getWalletRoute(addr,None) ~
                 deleteWalletRoute(addr,None)
               } else {
-                getWalletRoute(addr,authn.getUser) ~
-                deleteWalletRoute(addr,authn.getUser)
+                getWalletRoute(addr,authn.getUser.map(_.toString)) ~
+                deleteWalletRoute(addr,authn.getUser.map(_.toString))
               }
             ) 
           }
         }
-      )
+      },
+
+      // ----------------------------------- Tenant (OwnerID) Wallet 
+      pathPrefix("tenant") {         
+        pathPrefix(Segment) { oid => concat(
+          pathPrefix("random") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  randomWalletRoute(Some(oid))
+              })
+            }
+          },
+          pathPrefix(Segment) { addr => 
+            pathPrefix("sign") {
+              pathEndOrSingleSlash { 
+                authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  signWalletRoute(addr,Some(oid))
+                })
+              }
+            } ~
+            pathPrefix("tx") {
+              pathEndOrSingleSlash { 
+                authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                    txWalletRoute(addr,Some(oid))
+                })
+              }
+            } ~
+            pathPrefix("balance") {
+              pathEndOrSingleSlash { 
+                authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  getWalletBalanceRoute(addr,Some(oid))
+                })
+              }
+            } ~
+            pathEndOrSingleSlash {            
+              authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  getWalletRoute(addr,Some(oid)) ~
+                  deleteWalletRoute(addr,Some(oid))
+              }) 
+            }
+          },
+          pathEndOrSingleSlash {            
+            authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+              createWalletRoute(Some(oid))
+              getWalletsRoute(Some(oid))            
+            })
+          }
+        )}
+      }
+    )      
   }
 }

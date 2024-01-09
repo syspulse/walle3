@@ -23,7 +23,7 @@ class WalletStoreDir(dir:String = "store/") extends StoreDir[WalletSecret,String
 
   def toKey(addr:String):String = addr
 
-  def all(oid:Option[UUID]):Seq[WalletSecret] = store.all(oid)
+  def all(oid:Option[String]):Seq[WalletSecret] = store.all(oid)
   
   def size:Long = store.size
   
@@ -34,16 +34,16 @@ class WalletStoreDir(dir:String = "store/") extends StoreDir[WalletSecret,String
 
   override def +(w:WalletSecret):Try[WalletStoreDir] = store.+(w).map(_ => this)
 
-  override def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = for {
+  override def del(addr:String,oid:Option[String]):Try[WalletSecret] = for {
     w <- store.del(addr,oid)
     _ <- super.del(addr)
   } yield w
 
   override def del(addr:String):Try[WalletStoreDir] = this.del(addr).map(_ => this)    
   
-  def ???(addr:String,oid:Option[UUID]):Try[WalletSecret] = store.???(addr,oid)
+  def ???(addr:String,oid:Option[String]):Try[WalletSecret] = store.???(addr,oid)
 
-  override def findByOid(oid:UUID):Seq[WalletSecret] = store.findByOid(oid)
+  override def findByOid(oid:String):Seq[WalletSecret] = store.findByOid(oid)
     
   // preload and watch
   load(dir)

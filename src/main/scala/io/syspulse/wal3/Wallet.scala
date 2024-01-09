@@ -10,4 +10,3 @@ case class Wallet(
   typ:String,
   ts:Long
 )
-

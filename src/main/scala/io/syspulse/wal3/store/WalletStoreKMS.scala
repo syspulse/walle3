@@ -38,18 +38,18 @@ import io.syspulse.wal3.signer.WalletSignerKMS
 class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag:String = "") extends WalletSignerKMS(blockchains,uri,tag) with WalletStore {
   //val log = Logger(s"${this}")
   
-  def all(oid:Option[UUID]):Seq[WalletSecret] = list(None,oid)    
+  def all(oid:Option[String]):Seq[WalletSecret] = list(None,oid)    
 
   def size:Long = all(None).size
 
-  def findByOid(oid:UUID):Seq[WalletSecret] = 
+  def findByOid(oid:String):Seq[WalletSecret] = 
     all(Some(oid)).filter(_.oid == Some(oid)).toSeq
 
   def +++(w:WalletSecret):Try[WalletSecret] = create(w.oid)
 
   def +(w:WalletSecret):Try[WalletStoreKMS] = +++(w).map(_ => this)
 
-  def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = {         
+  def del(addr:String,oid:Option[String]):Try[WalletSecret] = {         
     for {
       w <- ???(addr,oid)
       _ <- {
@@ -84,7 +84,7 @@ class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag
     } yield w
   }
     
-  def ???(addr:String,oid:Option[UUID]):Try[WalletSecret] = {    
+  def ???(addr:String,oid:Option[String]):Try[WalletSecret] = {    
     list(Some(addr),oid).toList match {
       case w :: _ => 
         Success(w)

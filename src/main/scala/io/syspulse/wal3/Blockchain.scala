@@ -46,6 +46,7 @@ class Blockchains(bb:Seq[String]) {
             None
           else
             Some(( 1L ->  Blockchain("mainnet",1L,rpc), 1L -> Eth.web3(rpc) ))
+        case _ => None
       }
     })
     blockchains = blockchains ++ newBlockchains.map(_._1).toMap

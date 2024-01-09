@@ -11,7 +11,7 @@ case class WalletSecret(
   pk:String,
   addr:String,
 
-  oid:Option[UUID],
+  oid:Option[String],
   
   typ:String = "ECDSA",
   ts:Long = System.currentTimeMillis(),

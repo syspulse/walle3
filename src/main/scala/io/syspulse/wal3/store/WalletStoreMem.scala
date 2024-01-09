@@ -16,7 +16,7 @@ class WalletStoreMem extends WalletStore {
   
   var wallets: Map[String,WalletSecret] = Map()
 
-  def all(oid:Option[UUID]):Seq[WalletSecret] = 
+  def all(oid:Option[String]):Seq[WalletSecret] = 
     if(oid==None) 
       wallets.values.toSeq 
     else 
@@ -24,7 +24,7 @@ class WalletStoreMem extends WalletStore {
 
   def size:Long = wallets.size
 
-  def findByOid(oid:UUID):Seq[WalletSecret] = 
+  def findByOid(oid:String):Seq[WalletSecret] = 
     wallets.values.filter(_.oid == Some(oid)).toSeq
 
   def +++(w:WalletSecret):Try[WalletSecret] = {     
@@ -34,7 +34,7 @@ class WalletStoreMem extends WalletStore {
 
   def +(w:WalletSecret):Try[WalletStoreMem] = +++(w).map(_ => this)    
 
-  def del(addr:String,oid:Option[UUID]):Try[WalletSecret] = {         
+  def del(addr:String,oid:Option[String]):Try[WalletSecret] = {         
     wallets.get(addr) match {
       case Some(w) if w.oid == oid =>
         wallets = wallets - addr
@@ -44,7 +44,7 @@ class WalletStoreMem extends WalletStore {
     }
   }
 
-  def ???(addr:String,oid:Option[UUID]):Try[WalletSecret] = wallets.get(addr) match {
+  def ???(addr:String,oid:Option[String]):Try[WalletSecret] = wallets.get(addr) match {
     case Some(w) if(w.oid == oid) => Success(w)
     case _ => Failure(new Exception(s"not found: ${addr}"))
   }

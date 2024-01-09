@@ -119,7 +119,7 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
     "sign with KMS key" in {
       val s = new WalletStoreKMS()
       val oid = UUID.random
-      val w0 = WalletSecret("","","",Some(oid))
+      val w0 = WalletSecret("","","",Some(oid.toString))
       val w1 = s.+++(w0)
 
       w1 shouldBe a [Success[_]]

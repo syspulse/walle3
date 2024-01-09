@@ -16,7 +16,7 @@ import io.syspulse.wal3.Blockchains
 class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSigner {
   val log = Logger(s"${this}")
 
-  def random(oid:Option[UUID]):Try[WalletSecret] = {
+  def random(oid:Option[String]):Try[WalletSecret] = {
     log.info(s"random keypair: ${oid}")
     for {
       kp <- Eth.generateRandom()
@@ -31,7 +31,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
      } yield ws
   }
 
-  def create(oid:Option[UUID],sk:String):Try[WalletSecret] = {
+  def create(oid:Option[String],sk:String):Try[WalletSecret] = {
     log.info(s"create: ${oid}, sk_hash=${Util.sha256(sk)}")
     for {
       kp <- Eth.generate(sk)

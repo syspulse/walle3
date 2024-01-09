@@ -22,17 +22,17 @@ object WalletRegistry {
   val log = Logger(s"${this}")
   // implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
     
-  final case class GetWallets(oid:Option[UUID],replyTo: ActorRef[Wallets]) extends Command
-  final case class GetWallet(addr:String,oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
+  final case class GetWallets(oid:Option[String],replyTo: ActorRef[Wallets]) extends Command
+  final case class GetWallet(addr:String,oid:Option[String], replyTo: ActorRef[Try[Wallet]]) extends Command
   
-  final case class CreateWallet(oid:Option[UUID], req: WalletCreateReq, replyTo: ActorRef[Try[Wallet]]) extends Command
-  final case class RandomWallet(oid:Option[UUID], req: WalletRandomReq, replyTo: ActorRef[Try[Wallet]]) extends Command
+  final case class CreateWallet(oid:Option[String], req: WalletCreateReq, replyTo: ActorRef[Try[Wallet]]) extends Command
+  final case class RandomWallet(oid:Option[String], req: WalletRandomReq, replyTo: ActorRef[Try[Wallet]]) extends Command
 
-  final case class DeleteWallet(addr: String, oid:Option[UUID], replyTo: ActorRef[Try[Wallet]]) extends Command
+  final case class DeleteWallet(addr: String, oid:Option[String], replyTo: ActorRef[Try[Wallet]]) extends Command
 
-  final case class SignWallet(addr: String, oid:Option[UUID], req: WalletSignReq, replyTo: ActorRef[Try[WalletSig]]) extends Command
-  final case class TxWallet(addr: String, oid:Option[UUID], req: WalletTxReq, replyTo: ActorRef[Try[WalletTx]]) extends Command
-  final case class BalanceWallet(addr: String, oid:Option[UUID], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
+  final case class SignWallet(addr: String, oid:Option[String], req: WalletSignReq, replyTo: ActorRef[Try[WalletSig]]) extends Command
+  final case class TxWallet(addr: String, oid:Option[String], req: WalletTxReq, replyTo: ActorRef[Try[WalletTx]]) extends Command
+  final case class BalanceWallet(addr: String, oid:Option[String], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains): Behavior[io.syspulse.skel.Command] = {
     registry(store,signer,blockchains)
