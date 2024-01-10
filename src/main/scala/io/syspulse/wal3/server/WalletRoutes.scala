@@ -192,7 +192,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   )
   def getWalletBalanceRoute(addr:String,oid:Option[String],blockchain:Option[String]) = get {
     metricBalanceCount.inc()
-    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = if(blockchain.isDefined) Seq(blockchain.get) else Seq())))
+    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = if(blockchain.isDefined) blockchain.get.split(",").toSeq else Seq())))
   }
   
   val corsAllow = CorsSettings(system.classicSystem)

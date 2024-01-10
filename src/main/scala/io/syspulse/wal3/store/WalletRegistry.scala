@@ -198,10 +198,11 @@ object WalletRegistry {
               blockchains.all()
             else 
               req.blockchains.flatMap(b => {
-                if(b.size > 0 && b(0).isDigit)
-                  blockchains.get(b.toLong)
+                val blockchain = b.trim
+                if(b.size > 0 && blockchain(0).isDigit)
+                  blockchains.get(blockchain.toLong)
                 else
-                  blockchains.getByName(b)
+                  blockchains.getByName(blockchain)
               })
             
             val web3s = bb.flatMap(b => {
