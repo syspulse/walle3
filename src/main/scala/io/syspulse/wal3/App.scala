@@ -7,6 +7,7 @@ import scala.concurrent.Await
 import io.syspulse.skel
 import io.syspulse.skel.util.Util
 import io.syspulse.skel.config._
+import io.syspulse.skel.auth.jwt.AuthJwt
 
 import io.jvm.uuid._
 
@@ -29,6 +30,8 @@ case class Config(
   signer:String = "eth1://",
   cypher:String = "key://",
   blockchains:Seq[String] = Seq(),
+
+  jwtUri:String = "hs512://",
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -53,6 +56,8 @@ object App extends skel.Server {
         ArgString('s', "signer",s"Signer [eth1://,kms://] (def: ${d.signer})"),
         ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
         ArgString('b', "blockchains",s"Blockchains [id1=http://rpc1,id2=http://rpc2] (def: ${d.blockchains})"),
+        
+        ArgString('_', "jwt.uri",s"JWT Uri [hs512://secret,rs512://pk/key,rs512://sk/key] (def: ${d.jwtUri})"),
                 
         ArgCmd("server","Command"),        
         ArgParam("<params>",""),
@@ -70,11 +75,17 @@ object App extends skel.Server {
       cypher = c.getString("cypher").getOrElse(d.cypher),
       blockchains = c.getListString("blockchains",d.blockchains),
 
+      jwtUri = c.getString("jwt.uri").getOrElse(d.jwtUri),
+
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),
     )
 
     Console.err.println(s"Config: ${config}")
+
+    if(! config.jwtUri.isBlank()) {
+      AuthJwt(config.jwtUri)
+    }
 
     val blockchains = Blockchains(config.blockchains)
 
