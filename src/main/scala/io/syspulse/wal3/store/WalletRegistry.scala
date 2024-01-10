@@ -17,10 +17,15 @@ import io.syspulse.skel.crypto.Eth
 import io.syspulse.wal3._
 import io.syspulse.wal3.server._
 import io.syspulse.wal3.signer.WalletSigner
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import java.util.concurrent.TimeUnit
+import scala.concurrent.Await
+import io.syspulse.skel.util.Util
 
 object WalletRegistry {
   val log = Logger(s"${this}")
-  // implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+  implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
     
   final case class GetWallets(oid:Option[String],replyTo: ActorRef[Wallets]) extends Command
   final case class GetWallet(addr:String,oid:Option[String], replyTo: ActorRef[Try[Wallet]]) extends Command
@@ -39,7 +44,7 @@ object WalletRegistry {
   }
 
   private def registry(store: WalletStore,signer:WalletSigner,blockchains:Blockchains): Behavior[io.syspulse.skel.Command] = {    
-    
+        
     // Rules of oid
     // 1. if oid == None - this is access from admin/service account
     // 2. if oid == Some - this is access from user and needs to be validated
@@ -186,60 +191,136 @@ object WalletRegistry {
 
         Behaviors.same
 
-      case BalanceWallet(addr, oid, req, replyTo) =>        
-        log.info(s"asking balances: ${oid}: ${addr}: ${req.blockchains}")
-        val balances:Try[Seq[BlockchainBalance]] = for {
-          // ws0 <- store.???(addr,oid)
-          // b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
-          // ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
-          
-          web3s <- {
-            val bb:Seq[Blockchain] = if(req.blockchains.size == 0) 
-              blockchains.all()
-            else 
-              req.blockchains.flatMap(b => {
-                val blockchain = b.trim
-                if(b.size > 0 && blockchain(0).isDigit)
-                  blockchains.get(blockchain.toLong)
-                else
-                  blockchains.getByName(blockchain)
-              })
+      case BalanceWallet(addr, oid, req, replyTo) => 
+
+        def getBalance(addr:String, oid:Option[String], req:WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) = {
+          val balances:Try[Seq[BlockchainBalance]] = for {
+            // ws0 <- store.???(addr,oid)
+            // b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+            // ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
             
-            val web3s = bb.flatMap(b => {
-              blockchains.getWeb3(b.id).toOption match {
-                case Some(web3) => Some((b,web3))
-                case _ => 
-                  log.warn(s"could not get Web3: ${addr}: ${b}")
-                  None
-              }
-            })            
-            Success(web3s)
-          }
-        
-          balances <- {
-            Success(
-              web3s.flatMap(web3 => {
-                log.info(s"balance: ${addr}: ${web3}")
-                Eth.getBalance(addr)(web3._2).toOption match {
-                  case Some(bal) => Some(BlockchainBalance(web3._1.name,web3._1.id,bal))
+            web3s <- {
+              val bb:Seq[Blockchain] = if(req.blockchains.size == 0) 
+                blockchains.all()
+              else 
+                req.blockchains.flatMap(b => {
+                  val blockchain = b.trim
+                  if(b.size > 0 && blockchain(0).isDigit)
+                    blockchains.get(blockchain.toLong)
+                  else
+                    blockchains.getByName(blockchain)
+                })
+              
+              val web3s = bb.flatMap(b => {
+                blockchains.getWeb3(b.id).toOption match {
+                  case Some(web3) => Some((b,web3))
                   case _ => 
-                    log.warn(s"could not get Balance: ${addr}: ${web3}")
+                    log.warn(s"could not get Web3: ${addr}: ${b}")
                     None
                 }
-              })
-            )
-          }
+              })            
+              Success(web3s)
+            }
           
-        } yield balances
-        
-        balances match {
-          case Success(balances) =>            
-            replyTo ! Success(WalletBalance(addr,balances))
-          case Failure(e)=> 
-            replyTo ! Failure(e)
+            balances <- {
+              Success(
+                web3s.flatMap(web3 => {
+                  log.info(s"balance: ${addr}: ${web3}")
+                  Eth.getBalance(addr)(web3._2).toOption match {
+                    case Some(bal) => Some(BlockchainBalance(web3._1.name,web3._1.id,bal))
+                    case _ => 
+                      log.warn(s"could not get Balance: ${addr}: ${web3}")
+                      None
+                  }
+                })
+              )
+            }
+            
+          } yield balances
+          
+          balances match {
+            case Success(balances) =>            
+              replyTo ! Success(WalletBalance(addr,balances))
+            case Failure(e)=> 
+              replyTo ! Failure(e)
+          }
         }
+
+        def getBalanceAsync(addr:String, oid:Option[String], req:WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) = {
+          
+          val balances = for {
+            web3s <- {
+              val bb:Seq[Blockchain] = if(req.blockchains.size == 0) 
+                blockchains.all()
+              else 
+                req.blockchains.flatMap(b => {
+                  val blockchain = b.trim
+                  if(b.size > 0 && blockchain(0).isDigit)
+                    blockchains.get(blockchain.toLong)
+                  else
+                    blockchains.getByName(blockchain)
+                })
+              
+              val web3s = bb.flatMap(b => {
+                blockchains.getWeb3(b.id).toOption match {
+                  case Some(web3) => Some((b,web3))
+                  case _ => 
+                    log.warn(s"could not get Web3: ${addr}: ${b}")
+                    None
+                }
+              })            
+              Success(web3s)
+            }
+          
+            ff <- {
+              val ff = web3s.map(web3 => {
+                log.info(s"balance: ${addr}: ${web3}")
+                // ask for Future wrapped into try
+                val f = Eth.getBalanceAsync(addr)(web3._2,ec)
+                f                
+              })
+              Success(ff)
+            }
+
+            balances <- {
+              
+              val f = Util.waitAll(ff)
+              try {
+                val bals = Await.result(f,FiniteDuration(15000L,TimeUnit.MILLISECONDS))
+                
+                // Can iterate over web3s because all future must return successfully here            
+                Success(
+                  web3s.zip(bals).map{ case(web3,bal) =>
+                    bal match {
+                      case Success(bal) => BlockchainBalance(web3._1.name,web3._1.id,bal)
+                      case Failure(e) => BlockchainBalance(web3._1.name,web3._1.id,-1)
+                    }
+                  }
+                )
+                
+              } catch {
+                case e:Exception => 
+                  Failure(e)
+              }
+            }
+            
+          } yield balances
+          
+          balances match {
+            case Success(balances) =>            
+              replyTo ! Success(WalletBalance(addr,balances))
+            case Failure(e)=> 
+              replyTo ! Failure(e)
+          }
+        }
+
+        log.info(s"asking balances: ${oid}: ${addr}: ${req.blockchains}")
+        
+        getBalanceAsync(addr,oid,req,replyTo)
 
         Behaviors.same
     }
+        
   }
+
 }
