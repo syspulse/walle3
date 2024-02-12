@@ -24,7 +24,7 @@ import io.syspulse.wal3.cypher._
 case class Config(
   host:String="0.0.0.0",
   port:Int=8080,
-  uri:String = "/api/v1/wal3",
+  uri:String = "/api/v1/wal",
 
   datastore:String = "mem://",
   signer:String = "eth1://",

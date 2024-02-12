@@ -3,7 +3,7 @@
 OID=${OID:-00000000-0000-0000-5555-000000000001}
 
 ACCESS_TOKEN=${ACCESS_TOKEN-`cat ACCESS_TOKEN`}
-SERVICE_URI=${SERVICE_URI:-http://localhost:8080/api/v1/wal3}
+SERVICE_URI=${SERVICE_URI:-http://localhost:8080/api/v1/wal}
 
 >&2 echo "OID=$OID"
 
