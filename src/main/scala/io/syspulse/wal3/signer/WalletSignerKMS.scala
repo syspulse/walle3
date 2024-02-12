@@ -39,28 +39,38 @@ import org.web3j.crypto.Sign
 import org.web3j.crypto.ECDSASignature
 import org.web3j.crypto.Hash
 
+import io.syspulse.wal3.KmsURI
+
 case class KeyData(keyId:String,addr:String,oid:Option[String])
 
 abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:String = "") extends WalletSigner {
   val log = Logger(s"${this}")
 
   val CYPHER = "KMS"
-  val region = sys.env.get("AWS_REGION").getOrElse("")
-  val account = sys.env.get("AWS_ACCOUNT").getOrElse("")
-
-  val kms0 = AWSKMSClientBuilder
-    .standard
-
-  val kms = (
-    if(!uri.isEmpty())
-      kms0.withEndpointConfiguration(new EndpointConfiguration(uri,region))
-    else if(sys.env.get("AWS_ENDPOINT").isDefined)
-      kms0.withEndpointConfiguration(new EndpointConfiguration(sys.env.get("AWS_ENDPOINT").get,region))
-    else
-      kms0
-  )
-  .build
-
+  // val region = sys.env.get("AWS_REGION").getOrElse("")
+  // val account = sys.env.get("AWS_ACCOUNT").getOrElse("")
+  val kmsUri = KmsURI(uri)
+  
+  val kms = (for {
+    k0 <- Success(AWSKMSClientBuilder.standard)
+    k1 <- {
+      if(kmsUri.host.isDefined)
+        Success(k0.withEndpointConfiguration(new EndpointConfiguration(kmsUri.host.get,kmsUri.region.getOrElse(""))))
+      else
+        Success(k0)
+    }
+    k2 <- {
+      if(kmsUri.region.isDefined)
+        Success(k1.withRegion(kmsUri.region.get))
+      else
+        Success(k1)
+    }    
+    k10 <- Success(k2.build)
+  } yield k10) match {
+    case Success(kms) => kms
+    case Failure(e) => throw e
+  }
+  
   log.info(s"KMS(${uri}): ${kms}")  
 
   def random(oid:Option[String]):Try[WalletSecret] = {

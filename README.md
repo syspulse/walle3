@@ -124,9 +124,13 @@ anvil
 GOD=1 ./run-wal3.sh --datastore=kms://http://localhost:4599 --signer=kms://
 ```
 
+or AWS KMS:
+```
+GOD=1 ./run-wal3.sh --datastore=kms://arn:aws:kms:eu-west-1:$ACCOUNT --signer=kms://arn:aws:kms:eu-west-1:$ACCOUNT
+```
+
 3. Run test
 
 ```
 ./wal3-test-anvil.sh
 ```
-

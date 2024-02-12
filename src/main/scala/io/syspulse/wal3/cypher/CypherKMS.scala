@@ -11,8 +11,13 @@ import io.jvm.uuid._
 import io.syspulse.skel.crypto.kms.AES
 import io.syspulse.skel.util.Util
 
-class CypherKMS(keyId:String) extends Cypher {
+import io.syspulse.wal3.KmsURI
+
+class CypherKMS(uri:String) extends Cypher {
   val log = Logger(s"${this}")
+
+  val kmsUri = KmsURI(uri)
+  val keyId:String = kmsUri.uri
 
   log.info(s"KMS keyId: ${keyId}")
 

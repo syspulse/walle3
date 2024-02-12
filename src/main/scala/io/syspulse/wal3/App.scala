@@ -99,7 +99,7 @@ object App extends skel.Server {
       case "file" :: file :: Nil => new CypherFile(file)
       case "file" :: Nil => new CypherFile("")
 
-      case "kms" :: keyId :: _ => new CypherKMS(keyId)
+      case "kms" :: uri :: _ => new CypherKMS(uri)
       case _ => {        
         Console.err.println(s"Uknown cypher: '${config.cypher}'")
         sys.exit(1)
