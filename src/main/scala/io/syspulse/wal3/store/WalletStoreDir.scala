@@ -32,14 +32,14 @@ class WalletStoreDir(dir:String = "store/") extends StoreDir[WalletSecret,String
     _ <- super.+(w)
   } yield w
 
-  override def +(w:WalletSecret):Try[WalletStoreDir] = store.+(w).map(_ => this)
+  override def +(w:WalletSecret):Try[WalletSecret] = store.+(w).map(_ => w)
 
   override def del(addr:String,oid:Option[String]):Try[WalletSecret] = for {
     w <- store.del(addr,oid)
     _ <- super.del(addr)
   } yield w
 
-  override def del(addr:String):Try[WalletStoreDir] = this.del(addr).map(_ => this)    
+  override def del(addr:String):Try[String] = this.del(addr).map(_ => addr)    
   
   def ???(addr:String,oid:Option[String]):Try[WalletSecret] = store.???(addr,oid)
 

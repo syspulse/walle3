@@ -32,7 +32,7 @@ class WalletStoreMem extends WalletStore {
     Success(w)
   }
 
-  def +(w:WalletSecret):Try[WalletStoreMem] = +++(w).map(_ => this)    
+  def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)    
 
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = {         
     wallets.get(addr) match {

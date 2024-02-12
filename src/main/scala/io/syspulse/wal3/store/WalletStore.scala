@@ -30,6 +30,6 @@ trait WalletStore extends Store[WalletSecret,String] {
   //   this.+++(w).map(_ => this)
   // }
   def all:Seq[WalletSecret] = all(None)
-  def del(addr:String):Try[WalletStore] = del(addr,None).map(_ => this)  
+  def del(addr:String):Try[String] = del(addr,None).map(_ => addr)  
 }
 

@@ -47,7 +47,7 @@ class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag
 
   def +++(w:WalletSecret):Try[WalletSecret] = create(w.oid)
 
-  def +(w:WalletSecret):Try[WalletStoreKMS] = +++(w).map(_ => this)
+  def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)
 
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = {         
     for {

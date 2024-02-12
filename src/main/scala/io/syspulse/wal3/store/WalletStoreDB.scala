@@ -105,7 +105,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
     }
   }
 
-  def +(w:WalletSecret):Try[WalletStoreDB] = +++(w).map(_ => this)
+  def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)
   
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = { 
     log.info(s"DELETE: addr=${addr},oid=${oid}")
