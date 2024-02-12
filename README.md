@@ -109,3 +109,24 @@ export AWS_ACCOUNT=0000
 
 export AWS_ENDPOINT=http://localhost:4599
 ```
+
+### Test KMS signing with Anvil 
+
+1. Start `anvil`
+
+```
+anvil
+```
+
+2. Start walle3
+
+```
+GOD=1 ./run-wal3.sh --datastore=kms://http://localhost:4599 --signer=kms://
+```
+
+3. Run test
+
+```
+./wal3-test-anvil.sh
+```
+

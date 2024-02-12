@@ -284,11 +284,12 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
       // ----------------------------------- Tenant (OwnerID) Wallet 
       pathPrefix("tenant") {         
         pathPrefix(Segment) { oid => concat(
-          pathPrefix("random") {
-            pathEndOrSingleSlash { 
-              authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+          pathPrefix("random") {            
+            pathEndOrSingleSlash {               
+              authenticate()(authn => {
+                authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {                  
                   randomWalletRoute(Some(oid))
-              })
+              }})
             }
           },
           pathPrefix(Segment) { addr => 
@@ -320,15 +321,15 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
             } ~
             pathEndOrSingleSlash {            
               authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
-                  getWalletRoute(addr,Some(oid)) ~
-                  deleteWalletRoute(addr,Some(oid))
+                getWalletRoute(addr,Some(oid)) ~
+                deleteWalletRoute(addr,Some(oid))
               }) 
             }
           },
           pathEndOrSingleSlash {            
             authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
-              createWalletRoute(Some(oid))
-              getWalletsRoute(Some(oid))            
+              createWalletRoute(Some(oid)) ~
+              getWalletsRoute(Some(oid))   
             })
           }
         )}
