@@ -291,7 +291,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
               }
             ) 
           }
-        }
+        } ~ 
+          pathEndOrSingleSlash {            
+            authenticate()(authn =>
+              if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                getWalletsRoute(None)
+              } else {
+                getWalletsRoute(authn.getUser.map(_.toString))                
+              }
+            ) 
+          }
       },
 
       // --------------------------------- Tenant Wallet

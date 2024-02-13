@@ -39,11 +39,11 @@ object WalletRegistry {
   final case class TxWallet(addr: String, oid:Option[String], req: WalletTxReq, replyTo: ActorRef[Try[WalletTx]]) extends Command
   final case class BalanceWallet(addr: String, oid:Option[String], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
   
-  def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains): Behavior[io.syspulse.skel.Command] = {
-    registry(store,signer,blockchains)
+  def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
+    registry(store,signer,blockchains)(config)
   }
 
-  private def registry(store: WalletStore,signer:WalletSigner,blockchains:Blockchains): Behavior[io.syspulse.skel.Command] = {    
+  private def registry(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(config:Config): Behavior[io.syspulse.skel.Command] = {    
         
     // Rules of oid
     // 1. if oid == None - this is access from admin/service account
@@ -286,7 +286,7 @@ object WalletRegistry {
               
               val f = Util.waitAll(ff)
               try {
-                val bals = Await.result(f,FiniteDuration(15000L,TimeUnit.MILLISECONDS))
+                val bals = Await.result(f,FiniteDuration(config.rpcTimeout,TimeUnit.MILLISECONDS))
                 
                 // Can iterate over web3s because all future must return successfully here            
                 Success(

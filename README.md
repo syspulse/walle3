@@ -112,7 +112,7 @@ export AWS_ENDPOINT=http://localhost:4599
 
 ### Test KMS signing with Anvil 
 
-1. Start `anvil`
+1. Start [anvil](https://github.com/foundry-rs/foundry/tree/master/crates/anvil)
 
 ```
 anvil
@@ -126,7 +126,7 @@ GOD=1 ./run-wal3.sh --datastore=kms://http://localhost:4599 --signer=kms://
 
 or AWS KMS:
 ```
-GOD=1 ./run-wal3.sh --datastore=kms://arn:aws:kms:eu-west-1:$ACCOUNT --signer=kms://arn:aws:kms:eu-west-1:$ACCOUNT
+GOD=1 ./run-wal3.sh --datastore=kms://arn:aws:kms:eu-west-1:$AWS_ACCOUNT --signer=kms://arn:aws:kms:eu-west-1:$AWS_ACCOUNT
 ```
 
 3. Run test
@@ -134,3 +134,18 @@ GOD=1 ./run-wal3.sh --datastore=kms://arn:aws:kms:eu-west-1:$ACCOUNT --signer=km
 ```
 ./wal3-test-anvil.sh
 ```
+
+### Run with Keycloak JWT and tenant endpoints
+
+```
+./run-wal3.sh --jwt.uri=rs256://pk:cer:RS256-key.pub
+```
+
+```
+ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_1` ./tenant-random.sh
+ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_2` ./tenant-random.sh
+
+ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_1` ./tenant-get.sh
+ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_2` ./tenant-get.sh
+```
+

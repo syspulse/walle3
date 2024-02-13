@@ -31,6 +31,8 @@ case class Config(
   cypher:String = "key://",
   blockchains:Seq[String] = Seq(),
 
+  rpcTimeout:Long = 15000,
+
   jwtUri:String = "hs512://",
       
   cmd:String = "server",
@@ -58,6 +60,8 @@ object App extends skel.Server {
         ArgString('b', "blockchains",s"Blockchains [id1=http://rpc1,id2=http://rpc2] (def: ${d.blockchains})"),
         
         ArgString('_', "jwt.uri",s"JWT Uri [hs512://secret,rs512://pk/key,rs512://sk/key] (def: ${d.jwtUri})"),
+
+        ArgLong('_', "rpc.timeout",s"RPC timeout (def: ${d.rpcTimeout})"),
                 
         ArgCmd("server","Command"),        
         ArgParam("<params>",""),
@@ -76,6 +80,8 @@ object App extends skel.Server {
       blockchains = c.getListString("blockchains",d.blockchains),
 
       jwtUri = c.getString("jwt.uri").getOrElse(d.jwtUri),
+
+      rpcTimeout = c.getLong("rpc.timeout").getOrElse(d.rpcTimeout),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),
