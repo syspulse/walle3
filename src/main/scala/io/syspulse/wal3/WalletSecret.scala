@@ -5,6 +5,7 @@ import scala.concurrent.Future
 import scala.collection.immutable
 import io.jvm.uuid._
 import io.syspulse.wal3.cypher.Cypher
+import io.syspulse.skel.util.Util
 
 case class WalletSecret(  
   sk:String,  
@@ -18,7 +19,9 @@ case class WalletSecret(
 
   cypher:String = "AES-256",
   metadata:String = ""          // arbitrary metadata (e.g. used by KMS for datakey)
-)
+) {
+  override def toString = s"WalletSecret(${sk.take(4)}*****,${pk},${addr},${oid},${typ},${ts},${cypher},${Util.hex(metadata.getBytes())})"
+}
 
 // object WalletSecretEncrypted {
 //   def from(wse:WalletSecretEncrypted)(implicit cypher:Cypher):Try[WalletSecret] = {

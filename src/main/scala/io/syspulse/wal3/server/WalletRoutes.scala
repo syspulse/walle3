@@ -194,6 +194,19 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     metricBalanceCount.inc()
     complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = if(blockchain.isDefined) blockchain.get.split(",").toSeq else Seq())))
   }
+
+  def getOwner(authn:Authenticated):Option[String] = {
+    val t = authn.getToken
+    if(!t.isDefined) return None
+    
+    val json = ujson.read(t.get.claim.content)
+    json("tenantId").strOpt match {
+      case Some(tid) => Some(tid)
+      case None => 
+        log.warn(s"missing tenantId")
+        None
+    }
+  }
   
   val corsAllow = CorsSettings(system.classicSystem)
     //.withAllowGenericHttpRequests(true)
@@ -279,6 +292,80 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
             ) 
           }
         }
+      },
+
+      // --------------------------------- Tenant Wallet
+      pathPrefix("tenant") { 
+        pathPrefix("random") {
+          pathEndOrSingleSlash { 
+            authenticate()(authn =>
+              if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                randomWalletRoute(None)
+              else
+                randomWalletRoute(getOwner(authn))
+            )
+          }
+        } ~
+        pathPrefix(Segment) { addr => 
+          pathPrefix("sign") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  signWalletRoute(addr,None)
+                else
+                  signWalletRoute(addr,getOwner(authn))
+              )
+            }
+          } ~
+          pathPrefix("tx") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  txWalletRoute(addr,None)
+                else
+                  txWalletRoute(addr,getOwner(authn))
+              )
+            }
+          } ~
+          pathPrefix("balance") {
+            pathPrefix(Segment) { blockchain => 
+              authenticate()(authn => {
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                    getWalletBalanceRoute(addr,None,Some(blockchain))
+                  else
+                    getWalletBalanceRoute(addr,getOwner(authn),Some(blockchain))
+              })
+            } ~
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  getWalletBalanceRoute(addr,None,None)
+                else
+                  getWalletBalanceRoute(addr,getOwner(authn),None)
+              )
+            }
+          } ~
+          pathEndOrSingleSlash {            
+            authenticate()(authn =>
+              if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                getWalletRoute(addr,None) ~
+                deleteWalletRoute(addr,None)
+              } else {
+                getWalletRoute(addr,getOwner(authn)) ~
+                deleteWalletRoute(addr,getOwner(authn))
+              }
+            ) 
+          }
+        } ~
+          pathEndOrSingleSlash {            
+            authenticate()(authn =>
+              if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                getWalletsRoute(None)                
+              } else {
+                getWalletsRoute(getOwner(authn))                
+              }
+            ) 
+          }
       },
 
       // ----------------------------------- owner (OwnerID) Wallet 

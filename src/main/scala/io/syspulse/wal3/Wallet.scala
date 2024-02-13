@@ -8,5 +8,6 @@ import io.jvm.uuid._
 case class Wallet(  
   addr:String,
   typ:String,
-  ts:Long
+  ts:Long,
+  oid:Option[String]
 )

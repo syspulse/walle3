@@ -55,7 +55,7 @@ object WalletRegistry {
         replyTo ! Wallets(
           owned.map(ws => {
             log.debug(s"?: ${ws}")
-            Wallet(ws.addr,ws.typ,ws.ts)
+            Wallet(ws.addr,ws.typ,ws.ts,ws.oid)
           }),
           total = Some(all.size)
         )
@@ -71,7 +71,7 @@ object WalletRegistry {
         ws match {
           case Success(ws) =>
             log.info(s"?: ${ws}")
-            replyTo ! Success(Wallet(ws.addr,ws.typ,ws.ts))
+            replyTo ! Success(Wallet(ws.addr,ws.typ,ws.ts,ws.oid))
           case Failure(e)=> 
             replyTo ! Failure(e)
         }
@@ -85,7 +85,7 @@ object WalletRegistry {
           w <- {
             log.info(s"add: ${ws}")
 
-            Success(Wallet(ws.addr, ws.typ,ws.ts))
+            Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid))
           }
         } yield w        
         
@@ -105,7 +105,7 @@ object WalletRegistry {
           w <- {
             log.info(s"add: ${ws}")
 
-            Success(Wallet(ws.addr, ws.typ,ws.ts))
+            Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid))
           }
         } yield w        
         
@@ -122,7 +122,7 @@ object WalletRegistry {
         ws match {
           case Success(ws) => 
             log.info(s"del: ${ws}")
-            replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts))
+            replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts,ws.oid))
           case Failure(e) => replyTo ! Failure(e)
         }
         
