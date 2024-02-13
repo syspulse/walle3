@@ -112,8 +112,8 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     complete(getWallets(oid))
   }
 
-  @DELETE @Path("/tenant/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
-  @Operation(tags = Array("wallet"),summary = "Delete Wallet by addr",
+  @DELETE @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"),summary = "Delete Wallet by addr of owner",
     parameters = Array(new Parameter(name = "id", in = ParameterIn.PATH, description = "Wallet addr")),
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Wallet deleted",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
@@ -125,7 +125,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/tenant/{oid}") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/owner/{oid}") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Create Wallet",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletCreateReq])))),
@@ -140,7 +140,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/tenant/{oid}/random") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/owner/{oid}/random") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Create Random Wallet",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletRandomReq])))),
@@ -155,7 +155,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/tenant/{oid}/{addr}/sign") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/owner/{oid}/{addr}/sign") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Sign Transaction",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletSignReq])))),
@@ -170,7 +170,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @POST @Path("/tenant/{oid}/{addr}/tx") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @POST @Path("/owner/{oid}/{addr}/tx") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Send Transaction",
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletTxReq])))),
@@ -185,7 +185,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @GET @Path("/tenant/{oid}/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
+  @GET @Path("/owner/{oid}/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Balances",content = Array(new Content(schema = new Schema(implementation = classOf[WalletBalance])))))
@@ -281,8 +281,8 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
         }
       },
 
-      // ----------------------------------- Tenant (OwnerID) Wallet 
-      pathPrefix("tenant") {         
+      // ----------------------------------- owner (OwnerID) Wallet 
+      pathPrefix("owner") {         
         pathPrefix(Segment) { oid => concat(
           pathPrefix("random") {            
             pathEndOrSingleSlash {               

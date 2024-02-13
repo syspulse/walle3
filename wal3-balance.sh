@@ -10,4 +10,4 @@ ACCESS_TOKEN=${ACCESS_TOKEN-`cat ACCESS_TOKEN`}
 >&2 echo "ADDR=$ADDR"
 >&2 echo "OID=$OID"
 
-curl -S -s -D /dev/stderr -X GET -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/tenant/${OID}/${ADDR}/balance/${BLOCKCHAIN}
+curl -S -s -D /dev/stderr -X GET -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/owner/${OID}/${ADDR}/balance/${BLOCKCHAIN}
