@@ -369,9 +369,11 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
           pathEndOrSingleSlash {            
             authenticate()(authn =>
               if(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
-                getWalletsRoute(None)                
+                createWalletRoute(None) ~
+                getWalletsRoute(None)
               } else {
-                getWalletsRoute(getOwner(authn))                
+                createWalletRoute(getOwner(authn)) ~
+                getWalletsRoute(getOwner(authn))
               }
             ) 
           }
