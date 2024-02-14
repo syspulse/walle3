@@ -34,6 +34,9 @@ case class Config(
   rpcTimeout:Long = 15000,
 
   jwtUri:String = "hs512://",
+
+  ownerAttr:String = "tenantId",
+  serviceRole:String = "groups.service-role",
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -62,6 +65,9 @@ object App extends skel.Server {
         ArgString('_', "jwt.uri",s"JWT Uri [hs512://secret,rs512://pk/key,rs512://sk/key] (def: ${d.jwtUri})"),
 
         ArgLong('_', "rpc.timeout",s"RPC timeout (def: ${d.rpcTimeout})"),
+
+        ArgString('_', "owner.attr",s"Owner attribute in JWT (def: ${d.ownerAttr})"),
+        ArgString('_', "service.role",s"Service role in JWT (def: ${d.serviceRole})"),
                 
         ArgCmd("server","Command"),        
         ArgParam("<params>",""),
@@ -82,6 +88,9 @@ object App extends skel.Server {
       jwtUri = c.getString("jwt.uri").getOrElse(d.jwtUri),
 
       rpcTimeout = c.getLong("rpc.timeout").getOrElse(d.rpcTimeout),
+
+      ownerAttr = c.getString("owner.attr").getOrElse(d.ownerAttr),
+      serviceRole = c.getString("service.role").getOrElse(d.serviceRole),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),

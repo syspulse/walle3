@@ -57,6 +57,70 @@ import io.syspulse.wal3.store.WalletRegistry
 import io.syspulse.wal3.store.WalletRegistry._
 import io.syspulse.wal3.server._
 import io.syspulse.skel.service.telemetry.TelemetryRegistry
+import scala.annotation.tailrec
+
+object WalletRoutes {
+  def getOwner(authn:Authenticated)(implicit config:Config):Option[String] = {
+    val t = authn.getToken
+    if(!t.isDefined) return None
+    
+    val json = ujson.read(t.get.claim.content)
+    json(config.ownerAttr).strOpt match {
+      case Some(tid) => Some(tid)
+      case None => 
+        log.warn(s"missing JWT attribute: ${config.ownerAttr}")
+        None
+    }
+  }
+
+  // Primitive jq-style Json parser
+  def parseJson(json:String,route:String):Try[Seq[String]] = {
+        
+    def parseRoute(j:ujson.Value,r:String):Seq[String] = {
+      val i = r.indexOf(".")
+      val (v,rest) = if(i == -1) (r,"") else (r.substring(0,i),r.substring(i+1))
+      (v,rest) match {
+        case (expr,"") if(expr.endsWith("[]")) =>
+          j(expr.stripSuffix("[]"))
+            .arr
+            .map(j => j.str)
+            .toSeq
+
+        case (expr,"") => 
+          if(expr == j.str) Seq(expr)
+          else Seq()
+        case (expr,rest) if(expr.endsWith("[]")) =>
+          j(expr.stripSuffix("[]"))
+            .arr
+            .map(j => parseRoute(j,rest))
+            .flatten
+            .toSeq
+        case (expr,rest) =>
+          parseRoute(j.obj(expr),rest)            
+      }
+    }
+
+    try {
+      val j = ujson.read(json)
+      Success(parseRoute(j,route))
+    } catch {
+      case e:Exception => Failure(e)
+    }
+  }
+
+  def isServiceRole(authn:Authenticated)(implicit config:Config):Boolean = {
+    val t = authn.getToken
+    if(!t.isDefined) return false
+    
+    parseJson(t.get.claim.content,config.serviceRole) match {
+      case Success(r) => 
+        (r.size >0 && r(0) != "")
+      case Failure(e) => 
+        log.warn(s"missing Role attribute: ${config.serviceRole}",e)
+        false
+    }
+  }
+}
 
 @Path("/")
 class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_],config:Config) extends CommonRoutes with Routeable 
@@ -194,19 +258,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     metricBalanceCount.inc()
     complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = if(blockchain.isDefined) blockchain.get.split(",").toSeq else Seq())))
   }
-
-  def getOwner(authn:Authenticated):Option[String] = {
-    val t = authn.getToken
-    if(!t.isDefined) return None
-    
-    val json = ujson.read(t.get.claim.content)
-    json("tenantId").strOpt match {
-      case Some(tid) => Some(tid)
-      case None => 
-        log.warn(s"missing tenantId")
-        None
-    }
-  }
+  
   
   val corsAllow = CorsSettings(system.classicSystem)
     //.withAllowGenericHttpRequests(true)
@@ -311,7 +363,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
               if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                 randomWalletRoute(None)
               else
-                randomWalletRoute(getOwner(authn))
+                randomWalletRoute(WalletRoutes.getOwner(authn))
             )
           }
         } ~
@@ -322,7 +374,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                   signWalletRoute(addr,None)
                 else
-                  signWalletRoute(addr,getOwner(authn))
+                  signWalletRoute(addr,WalletRoutes.getOwner(authn))
               )
             }
           } ~
@@ -332,7 +384,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                   txWalletRoute(addr,None)
                 else
-                  txWalletRoute(addr,getOwner(authn))
+                  txWalletRoute(addr,WalletRoutes.getOwner(authn))
               )
             }
           } ~
@@ -342,7 +394,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                     getWalletBalanceRoute(addr,None,Some(blockchain))
                   else
-                    getWalletBalanceRoute(addr,getOwner(authn),Some(blockchain))
+                    getWalletBalanceRoute(addr,WalletRoutes.getOwner(authn),Some(blockchain))
               })
             } ~
             pathEndOrSingleSlash { 
@@ -350,7 +402,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
                   getWalletBalanceRoute(addr,None,None)
                 else
-                  getWalletBalanceRoute(addr,getOwner(authn),None)
+                  getWalletBalanceRoute(addr,WalletRoutes.getOwner(authn),None)
               )
             }
           } ~
@@ -360,8 +412,8 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 getWalletRoute(addr,None) ~
                 deleteWalletRoute(addr,None)
               } else {
-                getWalletRoute(addr,getOwner(authn)) ~
-                deleteWalletRoute(addr,getOwner(authn))
+                getWalletRoute(addr,WalletRoutes.getOwner(authn)) ~
+                deleteWalletRoute(addr,WalletRoutes.getOwner(authn))
               }
             ) 
           }
@@ -372,8 +424,8 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                 createWalletRoute(None) ~
                 getWalletsRoute(None)
               } else {
-                createWalletRoute(getOwner(authn)) ~
-                getWalletsRoute(getOwner(authn))
+                createWalletRoute(WalletRoutes.getOwner(authn)) ~
+                getWalletsRoute(WalletRoutes.getOwner(authn))
               }
             ) 
           }
@@ -385,7 +437,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
           pathPrefix("random") {            
             pathEndOrSingleSlash {               
               authenticate()(authn => {
-                authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {                  
+                authorize(Permissions.isAdmin(authn) || Permissions.isService(authn) || WalletRoutes.isServiceRole(authn)) {                  
                   randomWalletRoute(Some(oid))
               }})
             }
