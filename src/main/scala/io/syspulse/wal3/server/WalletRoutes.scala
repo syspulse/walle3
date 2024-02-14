@@ -58,6 +58,7 @@ import io.syspulse.wal3.store.WalletRegistry._
 import io.syspulse.wal3.server._
 import io.syspulse.skel.service.telemetry.TelemetryRegistry
 import scala.annotation.tailrec
+import io.syspulse.skel.auth.permissions.rbac
 
 object WalletRoutes {
   def getOwner(authn:Authenticated)(implicit config:Config):Option[String] = {
@@ -108,27 +109,47 @@ object WalletRoutes {
     }
   }
 
+  def isAdminRole(authn:Authenticated)(implicit config:Config):Boolean = {
+    isRole(authn,config.adminRole)
+  }
+
   def isServiceRole(authn:Authenticated)(implicit config:Config):Boolean = {
+    isRole(authn,config.serviceRole)
+  }
+
+  def isRole(authn:Authenticated,role:String):Boolean = {
     val t = authn.getToken
     if(!t.isDefined) return false
     
-    parseJson(t.get.claim.content,config.serviceRole) match {
+    parseJson(t.get.claim.content,role) match {
       case Success(r) => 
         (r.size >0 && r(0) != "")
       case Failure(e) => 
-        log.warn(s"missing Role attribute: ${config.serviceRole}",e)
+        log.debug(s"JWT Role attribute not found: ${role}: ${e.getMessage()}")
         false
     }
   }
 }
 
+// ==== Strict Permissions ==============================================================================================================
+class PermissionsRbacStrict()(implicit config:Config) extends Permissions {  
+ 
+  def isAdmin(authn:Authenticated):Boolean = Permissions.isGod || WalletRoutes.isAdminRole(authn)
+  def isService(authn:Authenticated):Boolean = Permissions.isGod || WalletRoutes.isServiceRole(authn)
+  // not supported mapping to User, only Service Account
+  def isUser(id:UUID,authn:Authenticated):Boolean = false
+  def isAllowed(authn:Authenticated,resource:String,action:String):Boolean = false
+  def hasRole(authn:Authenticated,role:String):Boolean = Permissions.isGod || WalletRoutes.isRole(authn,role)
+}
+
+// ======================================================================================================================================
 @Path("/")
 class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_],config:Config) extends CommonRoutes with Routeable 
   with RouteAuthorizers {
   
   implicit val system: ActorSystem[_] = context.system
   
-  implicit val permissions = Permissions()
+  implicit val permissions = if(config.permissions == "strict") new PermissionsRbacStrict() else Permissions(config.permissions)
 
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import WalletJson._

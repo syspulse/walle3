@@ -149,3 +149,8 @@ ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_1` ./tenant-get.sh
 ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_2` ./tenant-get.sh
 ```
 
+### Run with Specific role in JWT
+
+```
+./run-wal3.sh --service.role='groups[].service-account'
+```

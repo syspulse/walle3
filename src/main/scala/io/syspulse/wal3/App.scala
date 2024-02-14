@@ -34,9 +34,10 @@ case class Config(
   rpcTimeout:Long = 15000,
 
   jwtUri:String = "hs512://",
-
   ownerAttr:String = "tenantId",
   serviceRole:String = "groups.service-role",
+  adminRole:String = "groups.admin-role",
+  permissions:String = "strict",
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -62,14 +63,15 @@ object App extends skel.Server {
         ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
         ArgString('b', "blockchains",s"Blockchains [id1=http://rpc1,id2=http://rpc2] (def: ${d.blockchains})"),
         
-        ArgString('_', "jwt.uri",s"JWT Uri [hs512://secret,rs512://pk/key,rs512://sk/key] (def: ${d.jwtUri})"),
-
         ArgLong('_', "rpc.timeout",s"RPC timeout (def: ${d.rpcTimeout})"),
 
+        ArgString('_', "jwt.uri",s"JWT Uri [hs512://secret,rs512://pk/key] (def: ${d.jwtUri})"),
         ArgString('_', "owner.attr",s"Owner attribute in JWT (def: ${d.ownerAttr})"),
         ArgString('_', "service.role",s"Service role in JWT (def: ${d.serviceRole})"),
+        ArgString('_', "admin.role",s"Admin role in JWT (def: ${d.adminRole})"),
+        ArgString('_', "permissions",s"Permissions mode (def: ${d.permissions})"),
                 
-        ArgCmd("server","Command"),        
+        ArgCmd("server","Command"),
         ArgParam("<params>",""),
         ArgLogging()
       ).withExit(1)
@@ -91,6 +93,8 @@ object App extends skel.Server {
 
       ownerAttr = c.getString("owner.attr").getOrElse(d.ownerAttr),
       serviceRole = c.getString("service.role").getOrElse(d.serviceRole),
+      adminRole = c.getString("admin.role").getOrElse(d.adminRole),
+      permissions = c.getString("permissions").getOrElse(d.permissions),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),
