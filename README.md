@@ -149,8 +149,26 @@ ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_1` ./tenant-get.sh
 ACCESS_TOKEN=`cat ACCESS_TOKEN_EXT_2` ./tenant-get.sh
 ```
 
-### Run with Specific role in JWT
+### Run with Specific roles in JWT and Strict Authorization
+
+Default `skel` authorization expects `uid` and `roles` in JWT root object.
+
+Here is how to override default `skel` authorization and use custom roles in JWT payload:
 
 ```
-./run-wal3.sh --service.role='groups[].service-account'
+{
+  "exp": 1710503139,
+  "iat": 1707911139,
+  "iss": "",
+  "typ": "Bearer",
+  "groups": [
+    "default-roles-api",
+    "service-account"
+  ]  
+}
+```
+
+Run:
+```
+./run-wal3.sh --permissions=strict --service.role='groups[].service-account' --admin.role='groups[].admin-account'
 ```

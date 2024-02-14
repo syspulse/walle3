@@ -155,7 +155,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   import WalletJson._
   
   val metricGetCount: Counter = Counter.build().name("wal3_get_total").help("wal3 gets").register(TelemetryRegistry.registry)
-  val metricCreateCount: Counter = Counter.build().name("wal3_create_total").help("wal3 posts").register(TelemetryRegistry.registry)
+  val metricCreateCount: Counter = Counter.build().name("wal3_create_total").help("wal3 creats and random creates").register(TelemetryRegistry.registry)
   val metricDeleteCount: Counter = Counter.build().name("wal3_delete_total").help("wal3 deletes").register(TelemetryRegistry.registry)
   val metricSignCount: Counter = Counter.build().name("wal3_sign_total").help("wal3 signs").register(TelemetryRegistry.registry)
   val metricTxCount: Counter = Counter.build().name("wal3_tx_total").help("wal3 transactions").register(TelemetryRegistry.registry)
