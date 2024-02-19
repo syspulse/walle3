@@ -59,6 +59,7 @@ import io.syspulse.wal3.server._
 import io.syspulse.skel.service.telemetry.TelemetryRegistry
 import scala.annotation.tailrec
 import io.syspulse.skel.auth.permissions.rbac
+import io.syspulse.skel.util.Util
 
 object WalletRoutes {
   def getOwner(authn:Authenticated)(implicit config:Config):Option[String] = {
@@ -74,41 +75,6 @@ object WalletRoutes {
     }
   }
 
-  // Primitive jq-style Json parser
-  def parseJson(json:String,route:String):Try[Seq[String]] = {
-        
-    def parseRoute(j:ujson.Value,r:String):Seq[String] = {
-      val i = r.indexOf(".")
-      val (v,rest) = if(i == -1) (r,"") else (r.substring(0,i),r.substring(i+1))
-      (v,rest) match {
-        case (expr,"") if(expr.endsWith("[]")) =>
-          j(expr.stripSuffix("[]"))
-            .arr
-            .map(j => j.str)
-            .toSeq
-
-        case (expr,"") => 
-          if(expr == j.str) Seq(expr)
-          else Seq()
-        case (expr,rest) if(expr.endsWith("[]")) =>
-          j(expr.stripSuffix("[]"))
-            .arr
-            .map(j => parseRoute(j,rest))
-            .flatten
-            .toSeq
-        case (expr,rest) =>
-          parseRoute(j.obj(expr),rest)            
-      }
-    }
-
-    try {
-      val j = ujson.read(json)
-      Success(parseRoute(j,route))
-    } catch {
-      case e:Exception => Failure(e)
-    }
-  }
-
   def isAdminRole(authn:Authenticated)(implicit config:Config):Boolean = {
     isRole(authn,config.adminRole)
   }
@@ -121,7 +87,7 @@ object WalletRoutes {
     val t = authn.getToken
     if(!t.isDefined) return false
     
-    parseJson(t.get.claim.content,role) match {
+    Util.parseJson(t.get.claim.content,role) match {
       case Success(r) => 
         (r.size >0 && r(0) != "")
       case Failure(e) => 
