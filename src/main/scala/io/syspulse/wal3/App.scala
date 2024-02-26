@@ -60,7 +60,7 @@ object App extends skel.Server {
 
         ArgString('d', "datastore",s"Datastore [cache://,dir://,postgres://,mysql://,kms://] (def: ${d.datastore})"),
         ArgString('s', "signer",s"Signer [eth1://,kms://] (def: ${d.signer})"),
-        ArgString('c', "cypher",s"Cypher [pass://] (def: ${d.cypher})"),
+        ArgString('c', "cypher",s"Cypher [key://,kms://,file://] (def: ${d.cypher})"),
         ArgString('b', "blockchains",s"Blockchains [id1=http://rpc1,id2=http://rpc2] (def: ${d.blockchains})"),
         
         ArgLong('_', "rpc.timeout",s"RPC timeout (def: ${d.rpcTimeout})"),
