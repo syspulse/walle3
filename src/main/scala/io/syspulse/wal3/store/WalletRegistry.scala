@@ -73,6 +73,7 @@ object WalletRegistry {
             log.info(s"?: ${ws}")
             replyTo ! Success(Wallet(ws.addr,ws.typ,ws.ts,ws.oid))
           case Failure(e)=> 
+            log.error(s"failed to get wallet: ${oid},${addr}",e)
             replyTo ! Failure(e)
         }
         
@@ -92,7 +93,9 @@ object WalletRegistry {
         w match {
           case Success(_) =>            
             replyTo ! w
-          case Failure(e)=> replyTo ! Failure(e)
+          case Failure(e)=> 
+            log.error(s"failed to create wallet: ${oid},${req}",e)
+            replyTo ! Failure(e)
         }
 
         Behaviors.same
@@ -104,7 +107,6 @@ object WalletRegistry {
           _ <- store.+++(ws)
           w <- {
             log.info(s"add: ${ws}")
-
             Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid))
           }
         } yield w        
@@ -112,7 +114,9 @@ object WalletRegistry {
         w match {
           case Success(_) =>            
             replyTo ! w
-          case Failure(e)=> replyTo ! Failure(e)
+          case Failure(e)=> 
+            log.error(s"failed to create wallet: ${oid},${req}",e)
+            replyTo ! Failure(e)
         }
 
         Behaviors.same
@@ -123,7 +127,9 @@ object WalletRegistry {
           case Success(ws) => 
             log.info(s"del: ${ws}")
             replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts,ws.oid))
-          case Failure(e) => replyTo ! Failure(e)
+          case Failure(e) => 
+            log.error(s"failed to delete wallet: ${oid},${addr}",e)
+            replyTo ! Failure(e)
         }
         
         Behaviors.same
@@ -152,6 +158,7 @@ object WalletRegistry {
           case Success(sig) =>            
             replyTo ! Success(WalletSig(addr,sig))
           case Failure(e)=> 
+            log.error(s"failed to sign transaction: ${oid},${addr},${req}",e)
             replyTo ! Failure(e)
         }
 
@@ -186,6 +193,7 @@ object WalletRegistry {
           case Success(hash) =>            
             replyTo ! Success(WalletTx(addr,hash))
           case Failure(e)=> 
+            log.error(s"failed to send transaction: ${oid},${addr},${req}",e)
             replyTo ! Failure(e)
         }
 
@@ -242,6 +250,7 @@ object WalletRegistry {
             case Success(balances) =>            
               replyTo ! Success(WalletBalance(addr,balances))
             case Failure(e)=> 
+              log.error(s"failed to get balances: ${oid},${addr},${req}",e)
               replyTo ! Failure(e)
           }
         }
@@ -293,13 +302,16 @@ object WalletRegistry {
                   web3s.zip(bals).map{ case(web3,bal) =>
                     bal match {
                       case Success(bal) => BlockchainBalance(web3._1.name,web3._1.id,bal)
-                      case Failure(e) => BlockchainBalance(web3._1.name,web3._1.id,-1)
+                      case Failure(e) => 
+                        log.warn(s"failed to get balance: ${oid},${addr},${web3}",e)
+                        BlockchainBalance(web3._1.name,web3._1.id,-1)
                     }
                   }
                 )
                 
               } catch {
                 case e:Exception => 
+                  log.error(s"failed to get balances: ${oid},${addr},${req}",e)
                   Failure(e)
               }
             }
@@ -310,6 +322,7 @@ object WalletRegistry {
             case Success(balances) =>            
               replyTo ! Success(WalletBalance(addr,balances))
             case Failure(e)=> 
+              log.error(s"failed to get balances: ${oid},${addr},${req}",e)
               replyTo ! Failure(e)
           }
         }

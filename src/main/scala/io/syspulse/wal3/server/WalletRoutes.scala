@@ -139,9 +139,11 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def balanceWallet(addr:String, oid:Option[String], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
 
 
-  @GET @Path("/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
-  @Operation(tags = Array("wallet"),summary = "Return Wallet by add",
-    parameters = Array(new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet addr")),
+  @GET @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"),summary = "Return Wallet by Address",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address")),
     responses = Array(new ApiResponse(responseCode="200",description = "Wallet returned",content=Array(new Content(schema=new Schema(implementation = classOf[Wallet])))))
   )
   def getWalletRoute(addr: String, oid:Option[String]) = get {
@@ -153,8 +155,10 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @GET @Path("/") @Produces(Array(MediaType.APPLICATION_JSON))
-  @Operation(tags = Array("wallet"), summary = "Return all Wallets",
+  @GET @Path("/owner/{oid}") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"), summary = "Return all Wallets for owner",
+  parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner")),    
     responses = Array(
       new ApiResponse(responseCode = "200", description = "List of Wallets",content = Array(new Content(schema = new Schema(implementation = classOf[Wallets])))))
   )
@@ -165,7 +169,8 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
 
   @DELETE @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Delete Wallet by addr of owner",
-    parameters = Array(new Parameter(name = "id", in = ParameterIn.PATH, description = "Wallet addr")),
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner")),
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Wallet deleted",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
@@ -179,6 +184,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   @POST @Path("/owner/{oid}") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Create Wallet",
+    parameters = Array(new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner")),
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletCreateReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Wallet",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
@@ -194,6 +200,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   @POST @Path("/owner/{oid}/random") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Create Random Wallet",
+    parameters = Array(new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner")),
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletRandomReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Wallet",content = Array(new Content(schema = new Schema(implementation = classOf[Wallet])))))
   )
@@ -209,6 +216,9 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   @POST @Path("/owner/{oid}/{addr}/sign") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Sign Transaction",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address")),
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletSignReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletSig])))))
   )
@@ -224,6 +234,9 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   @POST @Path("/owner/{oid}/{addr}/tx") @Consumes(Array(MediaType.APPLICATION_JSON))
   @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Send Transaction",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address")),
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletTxReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Transaction Hash",content = Array(new Content(schema = new Schema(implementation = classOf[WalletTx])))))
   )
@@ -238,6 +251,9 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
 
   @GET @Path("/owner/{oid}/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address")),
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Balances",content = Array(new Content(schema = new Schema(implementation = classOf[WalletBalance])))))
   )

@@ -38,10 +38,11 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
       case "postgres" => CREATE_INDEX_POSTGRES_SQL
     }
 
+    // Base64 encoded encrypted key (SK) can be quite long on KMS
     val CREATE_TABLE_MYSQL_SQL = 
       s"""CREATE TABLE IF NOT EXISTS ${tableName} (
         addr VARCHAR(42) PRIMARY KEY, 
-        sk VARCHAR(256),
+        sk VARCHAR(2048),
         pk VARCHAR(130),
         oid VARCHAR(36), 
         typ VARCHAR(64),        
@@ -54,7 +55,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
     val CREATE_TABLE_POSTGRES_SQL = 
       s"""CREATE TABLE IF NOT EXISTS ${tableName} (
         addr VARCHAR(42) PRIMARY KEY, 
-        sk VARCHAR(256),
+        sk VARCHAR(2048),
         pk VARCHAR(130),
         oid VARCHAR(36),
         typ VARCHAR(64),        
@@ -95,7 +96,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   //val deleteById = (addr:String) => table.filter(_.addr == lift(addr)).delete
 
   def +++(w:WalletSecret):Try[WalletSecret] = { 
-    log.info(s"INSERT: ${w}")
+    log.debug(s"INSERT: ${w}")
     try {
       ctx.run(query[WalletSecret].insertValue(lift(w)));
       //ctx.run(table.insertValue(wal3);
@@ -108,7 +109,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)
   
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = { 
-    log.info(s"DELETE: addr=${addr},oid=${oid}")
+    log.debug(s"DELETE: addr=${addr},oid=${oid}")
     try {
       ctx.run(deleteById(lift(addr),lift(oid)))
       //ctx.run(deleteById(addr)) 
@@ -123,7 +124,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   }
 
   def ???(addr:String,oid:Option[String]):Try[WalletSecret] = {
-    log.info(s"SELECT: addr=${addr},oid=${oid}")
+    log.debug(s"SELECT: addr=${addr},oid=${oid}")
     try { 
       ctx.run(query[WalletSecret].filter(w => w.addr == lift(addr))) match {
       //ctx.run(table.filter(w => w.addr == lift(addr))) match {      
@@ -136,7 +137,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   }
 
   def findByOid(oid:String):Seq[WalletSecret] = {
-    log.info(s"FIND: oid=${oid}")
+    log.debug(s"FIND: oid=${oid}")
     //ctx.run(query[WalletSecret].filter(o => o.xid == lift(xid))) match {
     ctx.run(table.filter(w => w.oid == lift(Some(oid))))
   }

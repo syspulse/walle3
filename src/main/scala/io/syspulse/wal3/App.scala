@@ -35,8 +35,8 @@ case class Config(
 
   jwtUri:String = "hs512://",
   ownerAttr:String = "tenantId",
-  serviceRole:String = "groups.service-role",
-  adminRole:String = "groups.admin-role",
+  serviceRole:String = "groups[].service-role",
+  adminRole:String = "groups[].admin-role",
   permissions:String = "strict",
       
   cmd:String = "server",
@@ -92,8 +92,8 @@ object App extends skel.Server {
       rpcTimeout = c.getLong("rpc.timeout").getOrElse(d.rpcTimeout),
 
       ownerAttr = c.getString("owner.attr").getOrElse(d.ownerAttr),
-      serviceRole = c.getString("service.role").getOrElse(d.serviceRole),
-      adminRole = c.getString("admin.role").getOrElse(d.adminRole),
+      serviceRole = c.getString("service.role").getOrElse(d.serviceRole).stripPrefix("'").stripSuffix("'"),
+      adminRole = c.getString("admin.role").getOrElse(d.adminRole).stripPrefix("'").stripSuffix("'"),
       permissions = c.getString("permissions").getOrElse(d.permissions),
 
       cmd = c.getCmd().getOrElse(d.cmd),

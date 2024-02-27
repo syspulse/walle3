@@ -15,14 +15,13 @@ class CypherKey(pass:String) extends Cypher {
   def getPass():String = pass
 
   def encrypt(data:String):Try[(String,String)] = {    
-    val seed = aes.generateSeedRandom()
-    val dataEncrypted = aes.encryptBase64(data,getPass(),Some(seed))
-    Success((dataEncrypted,seed))
+    val (iv,dataEncrypted) = aes.encryptBase64(data,getPass(),None)
+    Success((dataEncrypted,iv))
   }
 
   def decrypt(data:String,metadata:String):Try[String] = {
-    val seed = metadata
-    aes.decryptBase64(data,getPass(),Some(seed))
+    val iv = metadata
+    aes.decryptBase64(data,getPass(),iv)
   }
 }
 
