@@ -137,13 +137,14 @@ object WalletRegistry {
       case SignWallet(addr, oid, req, replyTo) =>        
         val chainId = req.chainId.getOrElse(11155111L)
         val sig:Try[String] = for {
+          ws0 <- store.???(addr,oid)
+
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- Eth.strToWei(req.gasPrice)(web3)
           gasTip <- Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
-
-          ws0 <- store.???(addr,oid)
+          
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
           ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))          
           
@@ -167,13 +168,14 @@ object WalletRegistry {
       case TxWallet(addr, oid, req, replyTo) =>        
         val chainId = req.chainId.getOrElse(11155111L)
         val txHash:Try[String] = for {
+          ws0 <- store.???(addr,oid)
+          
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- Eth.strToWei(req.gasPrice)(web3)
           gasTip <- Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
-
-          ws0 <- store.???(addr,oid)
+          
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
           ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))          
           
