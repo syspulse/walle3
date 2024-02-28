@@ -135,8 +135,9 @@ object WalletRegistry {
         Behaviors.same
 
       case SignWallet(addr, oid, req, replyTo) =>        
-        val chainId = req.chainId.getOrElse(11155111L)
+        
         val sig:Try[String] = for {
+          chainId <- Success(req.chain.getOrElse(Blockchain.ANVIL).asLong)
           ws0 <- store.???(addr,oid)
 
           web3 <- blockchains.getWeb3(chainId)
@@ -166,8 +167,9 @@ object WalletRegistry {
         Behaviors.same
 
       case TxWallet(addr, oid, req, replyTo) =>        
-        val chainId = req.chainId.getOrElse(11155111L)
+        
         val txHash:Try[String] = for {
+          chainId <- Success(req.chain.getOrElse(Blockchain.ANVIL).asLong)
           ws0 <- store.???(addr,oid)
           
           web3 <- blockchains.getWeb3(chainId)
@@ -210,15 +212,15 @@ object WalletRegistry {
             // ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
             
             web3s <- {
-              val bb:Seq[Blockchain] = if(req.blockchains.size == 0) 
+              val bb:Seq[BlockchainRpc] = if(req.blockchains.size == 0) 
                 blockchains.all()
               else 
                 req.blockchains.flatMap(b => {
-                  val blockchain = b.trim
-                  if(b.size > 0 && blockchain(0).isDigit)
-                    blockchains.get(blockchain.toLong)
+                  val BlockchainRpc = b.trim
+                  if(b.size > 0 && BlockchainRpc(0).isDigit)
+                    blockchains.get(BlockchainRpc.toLong)
                   else
-                    blockchains.getByName(blockchain)
+                    blockchains.getByName(BlockchainRpc)
                 })
               
               val web3s = bb.flatMap(b => {
@@ -261,15 +263,15 @@ object WalletRegistry {
           
           val balances = for {
             web3s <- {
-              val bb:Seq[Blockchain] = if(req.blockchains.size == 0) 
+              val bb:Seq[BlockchainRpc] = if(req.blockchains.size == 0) 
                 blockchains.all()
               else 
                 req.blockchains.flatMap(b => {
-                  val blockchain = b.trim
-                  if(b.size > 0 && blockchain(0).isDigit)
-                    blockchains.get(blockchain.toLong)
+                  val BlockchainRpc = b.trim
+                  if(b.size > 0 && BlockchainRpc(0).isDigit)
+                    blockchains.get(BlockchainRpc.toLong)
                   else
-                    blockchains.getByName(blockchain)
+                    blockchains.getByName(BlockchainRpc)
                 })
               
               val web3s = bb.flatMap(b => {

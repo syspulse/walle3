@@ -23,7 +23,7 @@ SERVICE_URI=${SERVICE_URI:-http://localhost:8080/api/v1/wal}
 >&2 echo "DATA=$DATA"
 >&2 echo "NONCE=$NONCE"
 
-DATA_JSON="{\"to\":\"$TO\",\"data\":\"$DATA\",\"value\":\"$VALUE\",\"gasPrice\":\"$FEE\",\"gasTip\":\"$TIP\",\"gasLimit\":$LIMIT, \"nonce\":$NONCE,\"chainId\":$CHAIN_ID}"
+DATA_JSON="{\"to\":\"$TO\",\"data\":\"$DATA\",\"value\":\"$VALUE\",\"gasPrice\":\"$FEE\",\"gasTip\":\"$TIP\",\"gasLimit\":$LIMIT, \"nonce\":$NONCE,\"chain\":{\"name\":\"evm\",\"id\":\"$CHAIN_ID\"}}"
 
 >&2 echo $DATA_JSON
 curl -S -s -D /dev/stderr -X POST --data "$DATA_JSON" -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/owner/${OID}/${ADDR}/sign
