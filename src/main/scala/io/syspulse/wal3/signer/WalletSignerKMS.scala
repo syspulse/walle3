@@ -1,5 +1,7 @@
 package io.syspulse.wal3.signer
 
+import java.math.BigInteger
+
 import scala.jdk.CollectionConverters._
 import scala.util.{Try,Success,Failure}
 import scala.concurrent.Future
@@ -22,24 +24,28 @@ import com.amazonaws.services.kms.model.Tag
 import com.amazonaws.services.kms.model.CreateAliasRequest
 import com.amazonaws.services.kms.model.ListAliasesRequest
 import com.amazonaws.services.kms.model.DeleteAliasRequest
+import com.amazonaws.services.kms.model.SignRequest
 
 import java.nio.ByteBuffer
 
-import io.syspulse.skel.crypto.Eth
-import io.syspulse.wal3.WalletSecret
-import io.syspulse.skel.util.Util
 import org.web3j.protocol.core.methods.response.EthSign
-import io.syspulse.wal3.cypher.Cypher
-import io.syspulse.wal3.Blockchains
 import org.web3j.crypto.RawTransaction
-import java.math.BigInteger
+
 import org.web3j.crypto.TransactionEncoder
-import com.amazonaws.services.kms.model.SignRequest
+
 import org.web3j.crypto.Sign
 import org.web3j.crypto.ECDSASignature
 import org.web3j.crypto.Hash
 
-import io.syspulse.wal3.KmsURI
+import io.syspulse.skel.crypto.Eth
+import io.syspulse.wal3.WalletSecret
+import io.syspulse.skel.util.Util
+
+import io.syspulse.wal3.cypher.Cypher
+import io.syspulse.wal3.Blockchains
+
+import io.syspulse.skel.uri.KmsURI
+import io.syspulse.skel.crypto.kms.KmsClient
 
 case class KeyData(keyId:String,addr:String,oid:Option[String])
 
@@ -47,29 +53,32 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
   val log = Logger(s"${this}")
 
   val CYPHER = "KMS"
-  // val region = sys.env.get("AWS_REGION").getOrElse("")
-  // val account = sys.env.get("AWS_ACCOUNT").getOrElse("")
-  val kmsUri = KmsURI(uri)
   
-  val kms = (for {
-    k0 <- Success(AWSKMSClientBuilder.standard)
-    k1 <- {
-      if(kmsUri.host.isDefined)
-        Success(k0.withEndpointConfiguration(new EndpointConfiguration(kmsUri.host.get,kmsUri.region.getOrElse(""))))
-      else
-        Success(k0)
-    }
-    k2 <- {
-      if(kmsUri.region.isDefined)
-        Success(k1.withRegion(kmsUri.region.get))
-      else
-        Success(k1)
-    }    
-    k10 <- Success(k2.build)
-  } yield k10) match {
-    case Success(kms) => kms
-    case Failure(e) => throw e
-  }
+  // // val region = sys.env.get("AWS_REGION").getOrElse("")
+  // // val account = sys.env.get("AWS_ACCOUNT").getOrElse("")
+  // val kmsUri = KmsURI(uri)
+  
+  // val kms = (for {
+  //   k0 <- Success(AWSKMSClientBuilder.standard)
+  //   k1 <- {
+  //     if(kmsUri.host.isDefined)
+  //       Success(k0.withEndpointConfiguration(new EndpointConfiguration(kmsUri.host.get,kmsUri.region.getOrElse(""))))
+  //     else
+  //       Success(k0)
+  //   }
+  //   k2 <- {
+  //     if(kmsUri.region.isDefined)
+  //       Success(k1.withRegion(kmsUri.region.get))
+  //     else
+  //       Success(k1)
+  //   }    
+  //   k10 <- Success(k2.build)
+  // } yield k10) match {
+  //   case Success(kms) => kms
+  //   case Failure(e) => throw e
+  // }
+  
+  val kms = new KmsClient(uri).getAWSKMS()
   
   log.info(s"KMS(${uri}): ${kms}")  
 
@@ -280,13 +289,13 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
     } yield sig    
   }
 
-  def list(addr:Option[String] = None,oid:Option[String] = None):Seq[WalletSecret] = {    
+  def list(addr:Option[String] = None,oid:Option[String] = None,limit:Int = 100):Seq[WalletSecret] = {    
     var marker = "_"
     var keys = Seq[KeyData]()
     var found:Option[KeyData] = None
 
     while( marker != "" && found == None ) {
-      val req0 = new ListAliasesRequest().withLimit(100)
+      val req0 = new ListAliasesRequest().withLimit(limit)
       val res0 = try {
         kms.listAliases(req0)
       } catch {

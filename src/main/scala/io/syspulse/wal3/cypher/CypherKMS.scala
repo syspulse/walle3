@@ -10,8 +10,7 @@ import io.jvm.uuid._
 
 import io.syspulse.skel.crypto.kms.AES
 import io.syspulse.skel.util.Util
-
-import io.syspulse.wal3.KmsURI
+import io.syspulse.skel.uri.KmsURI
 
 class CypherKMS(uri:String) extends Cypher {
   val log = Logger(s"${this}")
@@ -21,7 +20,7 @@ class CypherKMS(uri:String) extends Cypher {
 
   log.info(s"KMS keyId: ${keyId}")
 
-  val aes = new AES()
+  val aes = new AES(uri)
 
   def encrypt(data:String):Try[(String,String)] = {    
     val dataEncrypted = aes.encryptBase64(data,keyId)
