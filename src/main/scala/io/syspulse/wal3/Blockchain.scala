@@ -14,7 +14,7 @@ object Blockchain {
   type ID = String
 
   val ETHEREUM = Blockchain("ethereum",Some("1"))
-  val BSC_MAINNET = Blockchain("bsc",Some("324"))
+  val BSC_MAINNET = Blockchain("bsc",Some("56"))
   val ARBITRUM_MAINNET = Blockchain("arbitrum",Some("42161"))
   val OPTIMISM_MAINNET = Blockchain("optimism",Some("10"))
   val POLYGON_MAINNET = Blockchain("polygon",Some("137"))

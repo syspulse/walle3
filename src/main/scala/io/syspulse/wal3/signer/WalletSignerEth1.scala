@@ -17,7 +17,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
   val log = Logger(s"${this}")
 
   def random(oid:Option[String]):Try[WalletSecret] = {
-    log.info(s"random keypair: ${oid}")
+    log.info(s"random: oid=${oid}")
     for {
       kp <- Eth.generateRandom()
       (sk,seed) <- cypher.encrypt(Util.hex(kp.sk))
@@ -32,7 +32,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
   }
 
   def create(oid:Option[String],sk:String):Try[WalletSecret] = {
-    log.info(s"create: ${oid}, sk_hash=${Util.sha256(sk)}")
+    log.info(s"create: oid=${oid}, sk_hash=${Util.sha256(sk)}")
     for {
       kp <- Eth.generate(sk)
       (sk,seed) <- cypher.encrypt(Util.hex(kp.sk))
@@ -50,7 +50,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
            to:String,nonce:Long,data:String,
            gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
            value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
-        
+    log.info(s"sign: ws=${ws}: [${chainId}]: to=${to},nonce=${nonce},gas=${gasPrice}/${gasTip}/${gasLimit},value=${value},data=${data}")
     for {
       web3 <- blockchains.getWeb3(chainId)
       sk <- cypher.decrypt(ws.sk,ws.metadata)
