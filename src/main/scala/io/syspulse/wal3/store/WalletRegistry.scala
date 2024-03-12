@@ -61,7 +61,9 @@ object WalletRegistry {
         )
         Behaviors.same
 
-      case GetWallet(addr, oid, replyTo) =>
+      case GetWallet(addr0, oid, replyTo) =>
+        val addr = addr0.toLowerCase()
+
         val ws = for {
           ws0 <- store.???(addr, oid)
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
@@ -100,8 +102,7 @@ object WalletRegistry {
 
         Behaviors.same
       
-      case RandomWallet(oid, req, replyTo) =>        
-
+      case RandomWallet(oid, req, replyTo) =>
         val w = for {
           ws <- signer.random(oid)
           _ <- store.+++(ws)
@@ -121,7 +122,9 @@ object WalletRegistry {
 
         Behaviors.same
       
-      case DeleteWallet(addr, oid, replyTo) =>
+      case DeleteWallet(addr0, oid, replyTo) =>
+        val addr = addr0.toLowerCase()
+
         val ws = store.del(addr,oid)        
         ws match {
           case Success(ws) => 
@@ -134,16 +137,17 @@ object WalletRegistry {
         
         Behaviors.same
 
-      case SignWallet(addr, oid, req, replyTo) =>        
-        
+      case SignWallet(addr0, oid, req, replyTo) =>        
+        val addr = addr0.toLowerCase()
+
         val sig:Try[String] = for {
           chainId <- Success(req.chain.getOrElse(Blockchain.ANVIL).asLong)
           ws0 <- store.???(addr,oid)
 
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
-          gasPrice <- Eth.strToWei(req.gasPrice)(web3)
-          gasTip <- Eth.strToWei(req.gasTip)(web3)
+          gasPrice <- if(req.gasPrice.isBlank()) Eth.getGasPrice()(web3) else Eth.strToWei(req.gasPrice)(web3)
+          gasTip <- if(req.gasTip.isBlank()) Success(BigInt(0)) else Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
           
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
@@ -166,16 +170,17 @@ object WalletRegistry {
 
         Behaviors.same
 
-      case TxWallet(addr, oid, req, replyTo) =>        
-        
+      case TxWallet(addr0, oid, req, replyTo) =>        
+        val addr = addr0.toLowerCase()
+
         val txHash:Try[String] = for {
           chainId <- Success(req.chain.getOrElse(Blockchain.ANVIL).asLong)
           ws0 <- store.???(addr,oid)
           
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
-          gasPrice <- Eth.strToWei(req.gasPrice)(web3)
-          gasTip <- Eth.strToWei(req.gasTip)(web3)
+          gasPrice <- if(req.gasPrice.isBlank()) Eth.getGasPrice()(web3) else Eth.strToWei(req.gasPrice)(web3)
+          gasTip <- if(req.gasTip.isBlank()) Success(BigInt(0)) else Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
           
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
@@ -203,7 +208,8 @@ object WalletRegistry {
 
         Behaviors.same
 
-      case BalanceWallet(addr, oid, req, replyTo) => 
+      case BalanceWallet(addr0, oid, req, replyTo) => 
+        val addr = addr0.toLowerCase()
 
         def getBalance(addr:String, oid:Option[String], req:WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) = {
           val balances:Try[Seq[BlockchainBalance]] = for {

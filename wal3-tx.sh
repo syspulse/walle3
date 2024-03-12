@@ -3,8 +3,9 @@
 ADDR=${1:-0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266}
 TO=${2:-0x70997970C51812dc3A010C7d01b50e0d17dc79C8}
 VALUE=${3:-1 eth}
-FEE=${4:-3 gwei}
-TIP=${5:-0.5 gwei}
+
+FEE=${FEE:-3 gwei}
+TIP=${TIP:-0.5 gwei}
 LIMIT=${LIMIT:-21000}
 DATA=${DATA:-}
 NONCE=${NONCE:--1}
