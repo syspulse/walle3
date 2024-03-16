@@ -104,6 +104,7 @@ object WalletRegistry {
         Behaviors.same
       
       case RandomWallet(oid, req, replyTo) =>
+        log.info(s"random: oid=${oid}, req=${req}")            
         val w = for {
           ws <- signer.random(oid)
           _ <- store.+++(ws)
@@ -124,6 +125,7 @@ object WalletRegistry {
         Behaviors.same
       
       case DeleteWallet(addr0, oid, replyTo) =>
+        log.info(s"del: ${addr0}, oid=${oid}")
         val addr = addr0.toLowerCase()
 
         val ws = store.del(addr,oid)        
@@ -138,7 +140,8 @@ object WalletRegistry {
         
         Behaviors.same
 
-      case SignWallet(addr0, oid, req, replyTo) =>        
+      case SignWallet(addr0, oid, req, replyTo) =>
+        log.info(s"Sign Tx: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         val sig:Try[String] = for {
@@ -171,7 +174,8 @@ object WalletRegistry {
 
         Behaviors.same
 
-      case TxWallet(addr0, oid, req, replyTo) =>        
+      case TxWallet(addr0, oid, req, replyTo) =>
+        log.info(s"Send Tx: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         val txHash:Try[String] = for {
@@ -210,6 +214,7 @@ object WalletRegistry {
         Behaviors.same
 
       case BalanceWallet(addr0, oid, req, replyTo) => 
+        log.info(s"balance: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         def getBalance(addr:String, oid:Option[String], req:WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) = {
@@ -343,14 +348,14 @@ object WalletRegistry {
         Behaviors.same
 
       case TxStatusAsk(txHash, oid:Option[String], req:TxStatusReq, replyTo) =>        
-        
+        log.info(s"tx: ${txHash}, oid=${oid}, req=${req}")            
+
         val status:Try[String] = for {
           chain <- if(req.chain.isDefined) Success(req.chain.get) else Failure(new Exception(s"undefined chain"))
           chainId <- Blockchain.resolve(chain)
           web3 <- blockchains.getWeb3(chainId)          
                     
-          status <- {
-            log.info(s"transaction: ${txHash}")            
+          status <- {            
             val receipt = web3.ethGetTransactionReceipt(txHash).send().getTransactionReceipt()
             if(receipt.isPresent())
               Success(receipt.get().getStatus())
