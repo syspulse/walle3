@@ -339,8 +339,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
       else 
         marker = ""
     }
-    // use keys to update cache
-    // >>>>>>>>>>>>>>>>>>>>
+    // use keys to update cache    
 
     if(addr.isDefined){
       if(!found.isDefined)

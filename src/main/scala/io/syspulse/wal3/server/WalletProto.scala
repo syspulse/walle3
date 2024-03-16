@@ -37,7 +37,9 @@ final case class WalletTxReq(
   chain:Option[Blockchain] = Some(Blockchain.ANVIL)
 )
 
-final case class WalletBalanceReq(oid:Option[String],blockchains:Seq[String]=Seq())
+final case class WalletBalanceReq(oid:Option[String],chains:Seq[Blockchain]=Seq())
+final case class TxStatusReq(oid:Option[String],chain:Option[Blockchain])
+final case class TxStatus(hash:String,status:String)
 
 final case class WalletSig(addr:String,sig:String)
 final case class WalletTx(addr:String,txHash:String)

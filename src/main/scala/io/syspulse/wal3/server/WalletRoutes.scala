@@ -137,7 +137,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def signWallet(addr:String, oid:Option[String], req: WalletSignReq): Future[Try[WalletSig]] = registry.ask(SignWallet(addr,oid,req, _))
   def txWallet(addr:String, oid:Option[String], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
   def balanceWallet(addr:String, oid:Option[String], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
-
+  def txStatus(txHash:String, oid:Option[String], req: TxStatusReq): Future[Try[TxStatus]] = registry.ask(TxStatusAsk(txHash,oid,req, _))
 
   @GET @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Return Wallet by Address",
@@ -259,7 +259,22 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   )
   def getWalletBalanceRoute(addr:String,oid:Option[String],blockchain:Option[String]) = get {
     metricBalanceCount.inc()
-    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,blockchains = if(blockchain.isDefined) blockchain.get.split(",").toSeq else Seq())))
+    complete(balanceWallet(addr,oid, WalletBalanceReq(oid,chains = if(blockchain.isDefined) blockchain.get.split(",").toIndexedSeq.map(Blockchain(_)) else Seq())))
+  }
+  
+  @GET @Path("/owner/{oid}/{addr}/tx/{hash}/{blockchain}") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address (Address is ignored and used only fro API consistency)"),
+      new Parameter(name = "hash", in = ParameterIn.PATH, description = "Transaction hash"),
+      new Parameter(name = "blockchain", in = ParameterIn.PATH, description = "Blockchain name of id")),
+    responses = Array(
+      new ApiResponse(responseCode = "200", description = "Transaction status",content = Array(new Content(schema = new Schema(implementation = classOf[TxStatus])))))
+  )
+  def getTxStatusRoute(txHash:String,addr:String,oid:Option[String],blockchain:String) = get {
+    metricBalanceCount.inc()
+    complete(txStatus(txHash, oid, TxStatusReq(oid, chain = Blockchain.resolve(blockchain))))
   }
   
   
@@ -382,6 +397,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
             }
           } ~
           pathPrefix("tx") {
+            pathPrefix(Segment) { txHash => 
+              pathPrefix(Segment) { blockchain => 
+                authenticate()(authn => {
+                  if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                      getTxStatusRoute(txHash,addr,None,blockchain)
+                    else
+                      getTxStatusRoute(txHash,addr,WalletRoutes.getOwner(authn),blockchain)
+                })
+              }
+            } ~
             pathEndOrSingleSlash { 
               authenticate()(authn =>
                 if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
@@ -454,6 +479,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
               }
             } ~
             pathPrefix("tx") {
+              pathPrefix(Segment) { txHash => 
+                pathPrefix(Segment) { blockchain => 
+                  authenticate()(authn => {
+                    if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                        getTxStatusRoute(txHash,addr,None,blockchain)
+                      else
+                        getTxStatusRoute(txHash,addr,WalletRoutes.getOwner(authn),blockchain)
+                  })
+                }
+              } ~
               pathEndOrSingleSlash { 
                 authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
                     txWalletRoute(addr,Some(oid))

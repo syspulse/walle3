@@ -38,6 +38,7 @@ object WalletRegistry {
   final case class SignWallet(addr: String, oid:Option[String], req: WalletSignReq, replyTo: ActorRef[Try[WalletSig]]) extends Command
   final case class TxWallet(addr: String, oid:Option[String], req: WalletTxReq, replyTo: ActorRef[Try[WalletTx]]) extends Command
   final case class BalanceWallet(addr: String, oid:Option[String], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
+  final case class TxStatusAsk(txHash: String, oid:Option[String], req: TxStatusReq, replyTo: ActorRef[Try[TxStatus]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
     registry(store,signer,blockchains)(config)
@@ -218,15 +219,14 @@ object WalletRegistry {
             // ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
             
             web3s <- {
-              val bb:Seq[BlockchainRpc] = if(req.blockchains.size == 0) 
+              val bb:Seq[BlockchainRpc] = if(req.chains.size == 0) 
                 blockchains.all()
               else 
-                req.blockchains.flatMap(b => {
-                  val BlockchainRpc = b.trim
-                  if(b.size > 0 && BlockchainRpc(0).isDigit)
-                    blockchains.get(BlockchainRpc.toLong)
+                req.chains.flatMap(b => {                  
+                  if(b.id.isDefined)
+                    blockchains.get(b.id.get.toLong)
                   else
-                    blockchains.getByName(BlockchainRpc)
+                    blockchains.getByName(b.name)
                 })
               
               val web3s = bb.flatMap(b => {
@@ -269,15 +269,14 @@ object WalletRegistry {
           
           val balances = for {
             web3s <- {
-              val bb:Seq[BlockchainRpc] = if(req.blockchains.size == 0) 
+              val bb:Seq[BlockchainRpc] = if(req.chains.size == 0) 
                 blockchains.all()
               else 
-                req.blockchains.flatMap(b => {
-                  val BlockchainRpc = b.trim
-                  if(b.size > 0 && BlockchainRpc(0).isDigit)
-                    blockchains.get(BlockchainRpc.toLong)
+                req.chains.flatMap(b => {
+                  if(b.id.isDefined)
+                    blockchains.get(b.id.get.toLong)
                   else
-                    blockchains.getByName(BlockchainRpc)
+                    blockchains.getByName(b.name)
                 })
               
               val web3s = bb.flatMap(b => {
@@ -337,11 +336,39 @@ object WalletRegistry {
           }
         }
 
-        log.info(s"asking balances: ${oid}: ${addr}: ${req.blockchains}")
+        log.info(s"asking balances: ${oid}: ${addr}: ${req.chains}")
         
         getBalanceAsync(addr,oid,req,replyTo)
 
         Behaviors.same
+
+      case TxStatusAsk(txHash, oid:Option[String], req:TxStatusReq, replyTo) =>        
+        
+        val status:Try[String] = for {
+          chain <- if(req.chain.isDefined) Success(req.chain.get) else Failure(new Exception(s"undefined chain"))
+          chainId <- Blockchain.resolve(chain)
+          web3 <- blockchains.getWeb3(chainId)          
+                    
+          status <- {
+            log.info(s"transaction: ${txHash}")            
+            val receipt = web3.ethGetTransactionReceipt(txHash).send().getTransactionReceipt()
+            if(receipt.isPresent())
+              Success(receipt.get().getStatus())
+            else
+              Failure(new Exception(s"tx not found: ${txHash}"))
+          }
+        } yield status
+        
+        status match {
+          case Success(status) =>            
+            replyTo ! Success(TxStatus(txHash,status))
+          case Failure(e)=> 
+            log.error(s"failed to get tx status: ${oid},${txHash},${req}",e)
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
+
     }
         
   }

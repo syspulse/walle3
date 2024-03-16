@@ -28,7 +28,9 @@ object WalletJson extends JsonCommon {
   implicit val jf_wal_sig = jsonFormat2(WalletSig)  
   implicit val jf_wal_tx = jsonFormat2(WalletTx)  
   implicit val jf_wal_b_bal = jsonFormat3(BlockchainBalance)  
-  implicit val jf_wal_bal = jsonFormat2(WalletBalance)  
+  implicit val jf_wal_bal = jsonFormat2(WalletBalance) 
+  implicit val jf_wal_tx_st_req = jsonFormat2(TxStatusReq)
+  implicit val jf_wal_tx_st_res = jsonFormat2(TxStatus) 
 
   implicit val jf_ws_wal = jsonFormat8(WalletSecret)
 }
