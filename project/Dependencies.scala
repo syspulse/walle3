@@ -27,7 +27,7 @@ object Dependencies {
     
 
     lazy val skelVersion = "0.0.8"
-    lazy val appVersion = "0.0.5"
+    lazy val appVersion = "0.0.6"
 
     lazy val jarPrefix = "server-"
     

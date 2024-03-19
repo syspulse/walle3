@@ -138,6 +138,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def txWallet(addr:String, oid:Option[String], req: WalletTxReq): Future[Try[WalletTx]] = registry.ask(TxWallet(addr,oid,req, _))
   def balanceWallet(addr:String, oid:Option[String], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
   def txStatus(txHash:String, oid:Option[String], req: TxStatusReq): Future[Try[TxStatus]] = registry.ask(TxStatusAsk(txHash,oid,req, _))
+  def txCost(addr:String, oid:Option[String], req: TxCostReq): Future[Try[TxCost]] = registry.ask(TxCostAsk(addr,oid,req, _))
 
   @GET @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Return Wallet by Address",
@@ -268,13 +269,31 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
       new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
       new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address (Address is ignored and used only fro API consistency)"),
       new Parameter(name = "hash", in = ParameterIn.PATH, description = "Transaction hash"),
-      new Parameter(name = "blockchain", in = ParameterIn.PATH, description = "Blockchain name of id")),
+      new Parameter(name = "blockchain", in = ParameterIn.PATH, description = "Blockchain name or id")),
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Transaction status",content = Array(new Content(schema = new Schema(implementation = classOf[TxStatus])))))
   )
   def getTxStatusRoute(txHash:String,addr:String,oid:Option[String],blockchain:String) = get {
     metricBalanceCount.inc()
     complete(txStatus(txHash, oid, TxStatusReq(oid, chain = Blockchain.resolve(blockchain))))
+  }
+
+  @PUT @Path("/owner/{oid}/{addr}/cost") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"), summary = "Estimate contract call gas costs",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address which executes call")
+    ),
+    responses = Array(
+      new ApiResponse(responseCode = "200", description = "Costs",content = Array(new Content(schema = new Schema(implementation = classOf[TxStatus])))))
+  )
+  def getTxCostRoute(addr:String,oid:Option[String]) = put {
+   entity(as[TxCostReq]) { req =>
+      onSuccess(txCost(addr,oid.orElse(req.oid),req)) { r =>
+        metricTxCount.inc()
+        complete(r)
+      }
+    }
   }
   
   
@@ -504,6 +523,13 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
               pathEndOrSingleSlash { 
                 authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
                   getWalletBalanceRoute(addr,Some(oid),None)
+                })
+              }
+            } ~
+            pathPrefix("cost") {
+              pathEndOrSingleSlash { 
+                authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  getTxCostRoute(addr,Some(oid))
                 })
               }
             } ~

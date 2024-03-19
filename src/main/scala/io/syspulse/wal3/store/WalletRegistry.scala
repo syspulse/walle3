@@ -39,6 +39,7 @@ object WalletRegistry {
   final case class TxWallet(addr: String, oid:Option[String], req: WalletTxReq, replyTo: ActorRef[Try[WalletTx]]) extends Command
   final case class BalanceWallet(addr: String, oid:Option[String], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
   final case class TxStatusAsk(txHash: String, oid:Option[String], req: TxStatusReq, replyTo: ActorRef[Try[TxStatus]]) extends Command
+  final case class TxCostAsk(addr: String, oid:Option[String], req: TxCostReq, replyTo: ActorRef[Try[TxCost]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
     registry(store,signer,blockchains)(config)
@@ -104,7 +105,7 @@ object WalletRegistry {
         Behaviors.same
       
       case RandomWallet(oid, req, replyTo) =>
-        log.info(s"random: oid=${oid}, req=${req}")            
+        log.info(s"random: oid=${oid}, req=${req}")
         val w = for {
           ws <- signer.random(oid)
           _ <- store.+++(ws)
@@ -145,7 +146,7 @@ object WalletRegistry {
         val addr = addr0.toLowerCase()
 
         val sig:Try[String] = for {
-          chainId <- Success(req.chain.getOrElse(Blockchain.ANVIL).asLong)
+          chainId <- Util.succeed(req.chain.getOrElse(Blockchain.ANVIL).asLong)
           ws0 <- store.???(addr,oid)
 
           web3 <- blockchains.getWeb3(chainId)
@@ -179,7 +180,7 @@ object WalletRegistry {
         val addr = addr0.toLowerCase()
 
         val txHash:Try[String] = for {
-          chainId <- Success(req.chain.getOrElse(Blockchain.ANVIL).asLong)
+          chainId <- Util.succeed(req.chain.getOrElse(Blockchain.ANVIL).asLong)
           ws0 <- store.???(addr,oid)
           
           web3 <- blockchains.getWeb3(chainId)
@@ -219,9 +220,6 @@ object WalletRegistry {
 
         def getBalance(addr:String, oid:Option[String], req:WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) = {
           val balances:Try[Seq[BlockchainBalance]] = for {
-            // ws0 <- store.???(addr,oid)
-            // b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
-            // ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))
             
             web3s <- {
               val bb:Seq[BlockchainRpc] = if(req.chains.size == 0) 
@@ -374,6 +372,33 @@ object WalletRegistry {
 
         Behaviors.same
 
+      case TxCostAsk(addr0, oid, req, replyTo) =>
+        log.info(s"Estimate Tx: ${addr0}, oid=${oid}, req=${req}")            
+        val addr = addr0.toLowerCase()
+
+        val cost:Try[BigInt] = for {
+          chainId <- Util.succeed(req.chain.getOrElse(Blockchain.ANVIL).asLong)
+          ws0 <- store.???(addr,oid)
+          
+          web3 <- blockchains.getWeb3(chainId)          
+          
+          b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+                    
+          cost <- {
+            log.info(s"cost: ${ws0}: ${req.data}")                        
+            Eth.estimateGas(addr,req.to,req.data)(web3)
+          }
+        } yield cost
+        
+        cost match {
+          case Success(cost) =>            
+            replyTo ! Success(TxCost(cost))
+          case Failure(e)=> 
+            log.error(s"failed to estimate: ${oid},${addr},${req}",e)
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
     }
         
   }
