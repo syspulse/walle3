@@ -3,6 +3,7 @@ package io.syspulse.wal3
 import scala.util.{Try,Success,Failure}
 import scala.jdk.CollectionConverters._
 import io.syspulse.skel.Ingestable
+import io.syspulse.skel.util.Util
 
 case class Blockchain(
   name:String,
@@ -26,6 +27,9 @@ object Blockchain {
   val SEPOLIA = Blockchain("sepolia",Some("11155111"))
   val ANVIL = Blockchain("anvil",Some("31337"))
 
+  // default EVM
+  val EVM = Blockchain("evm",Some("31337"))
+
   val ALL = Seq(
     ETHEREUM,
     BSC_MAINNET,
@@ -36,7 +40,8 @@ object Blockchain {
     ZKSYNC_MAINNET,
 
     SEPOLIA,
-    ANVIL
+    ANVIL,
+    EVM
   )
 
   def resolve(name:String):Option[Blockchain] = ALL.find(b => b.name == name.trim)
@@ -46,8 +51,13 @@ object Blockchain {
     case _ => Some(chain.id.get.toLong)
   }
 
-  def resolve(chain:Blockchain):Try[Long] = resolveChainId(chain) match {
-    case Some(chain) => Success(chain)
+  def resolve(chain:Blockchain):Try[Long] = Util.succeed(resolveChainId(chain)) match {
+    case Success(chain) => Success(chain.get)
+    case _ => Failure(new Exception(s"unknown chain: ${chain}"))
+  }
+
+  def resolve(chain:Option[Blockchain]):Try[Long] = chain match {
     case None => Failure(new Exception(s"unknown chain: ${chain}"))
+    case Some(c) => resolve(c)
   }
 }

@@ -146,7 +146,7 @@ object WalletRegistry {
         val addr = addr0.toLowerCase()
 
         val sig:Try[String] = for {
-          chainId <- Util.succeed(req.chain.getOrElse(Blockchain.ANVIL).asLong)
+          chainId <- Blockchain.resolve(req.chain)
           ws0 <- store.???(addr,oid)
 
           web3 <- blockchains.getWeb3(chainId)
@@ -349,8 +349,7 @@ object WalletRegistry {
         log.info(s"tx: ${txHash}, oid=${oid}, req=${req}")            
 
         val status:Try[String] = for {
-          chain <- if(req.chain.isDefined) Success(req.chain.get) else Failure(new Exception(s"undefined chain"))
-          chainId <- Blockchain.resolve(chain)
+          chainId <- Blockchain.resolve(req.chain)
           web3 <- blockchains.getWeb3(chainId)          
                     
           status <- {            
@@ -377,7 +376,7 @@ object WalletRegistry {
         val addr = addr0.toLowerCase()
 
         val cost:Try[BigInt] = for {
-          chainId <- Util.succeed(req.chain.getOrElse(Blockchain.ANVIL).asLong)
+          chainId <- Blockchain.resolve(req.chain)
           ws0 <- store.???(addr,oid)
           
           web3 <- blockchains.getWeb3(chainId)          
