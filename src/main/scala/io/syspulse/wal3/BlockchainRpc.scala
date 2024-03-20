@@ -25,10 +25,13 @@ class Blockchains(bb:Seq[String]) {
     // 56L -> BlockchainRpc("bsc",56L,"https://rpc-bsc.48.club"),
     // 100L -> BlockchainRpc("gnosis",100L,"https://rpc.gnosis.gateway.fm"),
     // 250L -> BlockchainRpc("fantom",100L,"https://rpc.fantom.gateway.fm"),
-
+    
     // 534352L -> BlockchainRpc("scroll",534352L,"https://rpc.scroll.io"),
     // 324L -> BlockchainRpc("zksync",324L,"https://mainnet.era.zksync.io"),
 
+    // 59144L -> BlockchainRpc("linea",59144L,"https://linea.decubate.com"),
+    // 8453L -> BlockchainRpc("base",8453L,"https://rpc.notadegen.com/base"),
+    
     31337L -> BlockchainRpc("anvil",31337L,"http://localhost:8545"),
     11155111L -> BlockchainRpc("sepolia",11155111L,"https://eth-sepolia.public.blastapi.io"),
   )
