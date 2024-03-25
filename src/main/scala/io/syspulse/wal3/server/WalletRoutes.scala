@@ -297,7 +297,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @GET @Path("/blockchain/{blockchain}/price") @Produces(Array(MediaType.APPLICATION_JSON))
+  @GET @Path("/blockchain/{blockchain}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return Blockchain Gas price",
     parameters = Array(
       new Parameter(name = "blockchain", in = ParameterIn.PATH, description = "Blockchain name or id")),
@@ -308,7 +308,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     complete(blockchainPrice(BlockchainReq(chain = Blockchain.resolve(blockchain))))
   }
   
-// =======================================================================================================================
+// =======================================================================================================================================================
   val corsAllow = CorsSettings(system.classicSystem)
     //.withAllowGenericHttpRequests(true)
     .withAllowCredentials(true)
