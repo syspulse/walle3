@@ -250,7 +250,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     }
   }
 
-  @GET @Path("/owner/{oid}/{addr}/balance") @Produces(Array(MediaType.APPLICATION_JSON))
+  @GET @Path("/owner/{oid}/{addr}/balance/{blockchain}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
     parameters = Array(
       new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
@@ -264,7 +264,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   }
   
   @GET @Path("/owner/{oid}/{addr}/tx/{hash}/{blockchain}") @Produces(Array(MediaType.APPLICATION_JSON))
-  @Operation(tags = Array("wallet"), summary = "Return all Wallet balances",
+  @Operation(tags = Array("wallet"), summary = "Return Transaction status",
     parameters = Array(
       new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
       new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address (Address is ignored and used only fro API consistency)"),

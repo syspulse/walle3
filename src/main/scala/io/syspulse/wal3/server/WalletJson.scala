@@ -14,7 +14,7 @@ import io.syspulse.wal3.server._
 object WalletJson extends JsonCommon {
   import DefaultJsonProtocol._
 
-  implicit val jf_bc = jsonFormat2(Blockchain.apply _)
+  implicit val jf_bc = jsonFormat4(Blockchain.apply _)
 
   implicit val jf_wal = jsonFormat4(Wallet)
   implicit val jf_wals = jsonFormat2(Wallets)

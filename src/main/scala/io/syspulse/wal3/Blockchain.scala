@@ -7,7 +7,9 @@ import io.syspulse.skel.util.Util
 
 case class Blockchain(
   name:String,
-  id:Option[String] = None  // chain_id 
+  id:Option[String] = None,  // chain_id 
+  dec:Option[Int] = None,    // decimals
+  tick:Option[String] = None
 ) {
   def asLong:Long = id.getOrElse("0").toLong
 }
@@ -15,23 +17,23 @@ case class Blockchain(
 object Blockchain {
   type ID = String
 
-  val ETHEREUM = Blockchain("ethereum",Some("1"))
-  val BSC_MAINNET = Blockchain("bsc",Some("56"))
-  val ARBITRUM_MAINNET = Blockchain("arbitrum",Some("42161"))
-  val OPTIMISM_MAINNET = Blockchain("optimism",Some("10"))
-  val POLYGON_MAINNET = Blockchain("polygon",Some("137"))
+  val ETHEREUM = Blockchain("ethereum",Some("1"),Some(18),Some("ETH"))
+  val BSC_MAINNET = Blockchain("bsc",Some("56"),Some(8),Some("BNB"))
+  val ARBITRUM_MAINNET = Blockchain("arbitrum",Some("42161"),Some(18),Some("ETH"))
+  val OPTIMISM_MAINNET = Blockchain("optimism",Some("10"),Some(18),Some("ETH"))
+  val POLYGON_MAINNET = Blockchain("polygon",Some("137"),Some(18),Some("MATIC"))
 
-  val SCROLL_MAINNET = Blockchain("scroll",Some("534352"))
-  val ZKSYNC_MAINNET = Blockchain("zksync",Some("324"))
+  val SCROLL_MAINNET = Blockchain("scroll",Some("534352"),Some(18),Some("ETH"))
+  val ZKSYNC_MAINNET = Blockchain("zksync",Some("324"),Some(18),Some("ETH"))
 
-  val LINEA_MAINNET = Blockchain("linea",Some("59144")) 
-  val BASE_MAINNET = Blockchain("base",Some("8453")) 
+  val LINEA_MAINNET = Blockchain("linea",Some("59144"),Some(18),Some("ETH"))
+  val BASE_MAINNET = Blockchain("base",Some("8453"),Some(18),Some("ETH"))
   
-  val SEPOLIA = Blockchain("sepolia",Some("11155111"))
-  val ANVIL = Blockchain("anvil",Some("31337"))
+  val SEPOLIA = Blockchain("sepolia",Some("11155111"),Some(18),Some("ETH"))
+  val ANVIL = Blockchain("anvil",Some("31337"),Some(18),Some("ETH"))
 
   // default EVM
-  val EVM = Blockchain("evm",Some("31337"))
+  val EVM = Blockchain("evm",Some("31337"),Some(18),Some("ETH"))
 
   val ALL = Seq(
     ETHEREUM,
