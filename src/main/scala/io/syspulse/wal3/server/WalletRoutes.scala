@@ -139,6 +139,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def balanceWallet(addr:String, oid:Option[String], req: WalletBalanceReq): Future[Try[WalletBalance]] = registry.ask(BalanceWallet(addr,oid,req, _))
   def txStatus(txHash:String, oid:Option[String], req: TxStatusReq): Future[Try[TxStatus]] = registry.ask(TxStatusAsk(txHash,oid,req, _))
   def txCost(addr:String, oid:Option[String], req: TxCostReq): Future[Try[TxCost]] = registry.ask(TxCostAsk(addr,oid,req, _))
+  def blockchainPrice(req: BlockchainReq): Future[Try[GasPrice]] = registry.ask(GasPriceAsk(req, _))
 
   @GET @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
   @Operation(tags = Array("wallet"),summary = "Return Wallet by Address",
@@ -295,8 +296,19 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
       }
     }
   }
+
+  @GET @Path("/blockchain/{blockchain}/price") @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"), summary = "Return Blockchain Gas price",
+    parameters = Array(
+      new Parameter(name = "blockchain", in = ParameterIn.PATH, description = "Blockchain name or id")),
+    responses = Array(
+      new ApiResponse(responseCode = "200", description = "Gas price",content = Array(new Content(schema = new Schema(implementation = classOf[GasPrice])))))
+  )
+  def geBlockchainPriceRoute(blockchain:String) = get {
+    complete(blockchainPrice(BlockchainReq(chain = Blockchain.resolve(blockchain))))
+  }
   
-  
+// =======================================================================================================================
   val corsAllow = CorsSettings(system.classicSystem)
     //.withAllowGenericHttpRequests(true)
     .withAllowCredentials(true)
@@ -315,6 +327,17 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
             //   getWalletsRoute(authn.getUser)
             // }
           })   
+        )
+      },
+
+      pathPrefix("blockchain") { 
+        authenticate()(authn =>
+          pathEndOrSingleSlash { 
+            geBlockchainPriceRoute("ethereum")
+          } ~
+          pathPrefix(Segment) { blockchain => 
+            geBlockchainPriceRoute(blockchain)
+          }
         )
       },
 

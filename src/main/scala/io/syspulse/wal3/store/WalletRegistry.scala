@@ -40,6 +40,7 @@ object WalletRegistry {
   final case class BalanceWallet(addr: String, oid:Option[String], req: WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) extends Command
   final case class TxStatusAsk(txHash: String, oid:Option[String], req: TxStatusReq, replyTo: ActorRef[Try[TxStatus]]) extends Command
   final case class TxCostAsk(addr: String, oid:Option[String], req: TxCostReq, replyTo: ActorRef[Try[TxCost]]) extends Command
+  final case class GasPriceAsk(req: BlockchainReq, replyTo: ActorRef[Try[GasPrice]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
     registry(store,signer,blockchains)(config)
@@ -142,7 +143,7 @@ object WalletRegistry {
         Behaviors.same
 
       case SignWallet(addr0, oid, req, replyTo) =>
-        log.info(s"Sign Tx: ${addr0}, oid=${oid}, req=${req}")            
+        log.info(s"sign: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         val sig:Try[String] = for {
@@ -176,7 +177,7 @@ object WalletRegistry {
         Behaviors.same
 
       case TxWallet(addr0, oid, req, replyTo) =>
-        log.info(s"Send Tx: ${addr0}, oid=${oid}, req=${req}")            
+        log.info(s"tx: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         val txHash:Try[String] = for {
@@ -346,7 +347,7 @@ object WalletRegistry {
         Behaviors.same
 
       case TxStatusAsk(txHash, oid:Option[String], req:TxStatusReq, replyTo) =>        
-        log.info(s"tx: ${txHash}, oid=${oid}, req=${req}")            
+        log.info(s"status: ${txHash}, oid=${oid}, req=${req}")            
 
         val status:Try[String] = for {
           chainId <- Blockchain.resolve(req.chain)
@@ -372,7 +373,7 @@ object WalletRegistry {
         Behaviors.same
 
       case TxCostAsk(addr0, oid, req, replyTo) =>
-        log.info(s"Estimate Tx: ${addr0}, oid=${oid}, req=${req}")            
+        log.info(s"cost: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         val cost:Try[BigInt] = for {
@@ -384,7 +385,6 @@ object WalletRegistry {
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
                     
           cost <- {
-            log.info(s"cost: ${ws0}: ${req.data}")                        
             Eth.estimateGas(addr,req.to,req.data)(web3)
           }
         } yield cost
@@ -394,6 +394,30 @@ object WalletRegistry {
             replyTo ! Success(TxCost(cost))
           case Failure(e)=> 
             log.error(s"failed to estimate: ${oid},${addr},${req}",e)
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
+
+      case GasPriceAsk(req, replyTo) =>
+        log.info(s"gas price: req=${req}")            
+        
+        val r:Try[(BigInt,Long)] = for {
+          chainId <- Blockchain.resolve(req.chain)
+          
+          web3 <- blockchains.getWeb3(chainId)          
+                              
+          price <- {
+            Eth.getGasPrice()(web3)
+          }
+        } yield (price,chainId)
+        
+        r match {
+          case Success(r) =>   
+            val b = Blockchain.resolveById(r._2.toString).get
+            replyTo ! Success(GasPrice(r._1, tok=b.tok, dec=b.dec))
+          case Failure(e)=> 
+            log.error(s"failed to get gas price: ${req}",e)
             replyTo ! Failure(e)
         }
 

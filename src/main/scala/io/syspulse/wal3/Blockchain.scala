@@ -9,7 +9,7 @@ case class Blockchain(
   name:String,
   id:Option[String] = None,  // chain_id 
   dec:Option[Int] = None,    // decimals
-  tick:Option[String] = None
+  tok:Option[String] = None
 ) {
   def asLong:Long = id.getOrElse("0").toLong
 }
@@ -50,6 +50,10 @@ object Blockchain {
   )
 
   def resolve(name:String):Option[Blockchain] = ALL.find(b => b.name == name.trim)
+  def resolveById(id0:String):Option[Blockchain] = {
+    val id = Some(id0)
+    ALL.find(b => b.id == id)  
+  }
   
   def resolveChainId(chain:Blockchain):Option[Long] = chain.id match {
     case None => resolve(chain.name).map(b => b.id.get.toLong)

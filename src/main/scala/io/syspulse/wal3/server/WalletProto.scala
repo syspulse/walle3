@@ -49,3 +49,6 @@ final case class WalletTx(addr:String,txHash:String)
 
 final case class BlockchainBalance(name:String,id:Long,balance:BigInt)
 final case class WalletBalance(addr:String,balances:Seq[BlockchainBalance])
+
+final case class BlockchainReq(chain:Option[Blockchain])
+final case class GasPrice(gas:BigInt,tok:Option[String]=None,dec:Option[Int]=None)
