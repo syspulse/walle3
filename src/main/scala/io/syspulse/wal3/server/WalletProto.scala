@@ -42,7 +42,7 @@ final case class TxStatusReq(oid:Option[String],chain:Option[Blockchain])
 final case class TxStatus(hash:String,status:String)
 
 final case class TxCostReq(oid:Option[String],chain:Option[Blockchain],to:String,data:String)
-final case class TxCost(cost:BigInt)
+final case class TxCost(cost:BigInt,price:BigInt)
 
 final case class WalletSig(addr:String,sig:String)
 final case class WalletTx(addr:String,txHash:String)

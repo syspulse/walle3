@@ -376,7 +376,7 @@ object WalletRegistry {
         log.info(s"cost: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
-        val cost:Try[BigInt] = for {
+        val r:Try[(BigInt,BigInt)] = for {
           chainId <- Blockchain.resolve(req.chain)
           ws0 <- store.???(addr,oid)
           
@@ -387,11 +387,14 @@ object WalletRegistry {
           cost <- {
             Eth.estimateGas(addr,req.to,req.data)(web3)
           }
-        } yield cost
+          price <- {
+            Eth.getGasPrice()(web3)
+          }
+        } yield (cost,price)
         
-        cost match {
-          case Success(cost) =>            
-            replyTo ! Success(TxCost(cost))
+        r match {
+          case Success((cost,price)) =>            
+            replyTo ! Success(TxCost(cost,price))
           case Failure(e)=> 
             log.error(s"failed to estimate: ${oid},${addr},${req}",e)
             replyTo ! Failure(e)

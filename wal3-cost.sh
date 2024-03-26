@@ -19,4 +19,4 @@ CHAIN_ID=${CHAIN_ID:}
 DATA_JSON="{\"to\":\"$TO\",\"data\":\"$DATA\",\"chain\":{\"name\":\"evm\",\"id\":\"$CHAIN_ID\"}}"
 
 >&2 echo $DATA_JSON
-curl -S -s -D /dev/stderr -X PUT --data "$DATA_JSON" -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/owner/${OID}/${ADDR}
+curl -S -s -D /dev/stderr -X PUT --data "$DATA_JSON" -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/owner/${OID}/${ADDR}/cost

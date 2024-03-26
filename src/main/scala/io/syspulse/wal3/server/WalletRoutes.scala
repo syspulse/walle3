@@ -280,13 +280,13 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   }
 
   @PUT @Path("/owner/{oid}/{addr}/cost") @Produces(Array(MediaType.APPLICATION_JSON))
-  @Operation(tags = Array("wallet"), summary = "Estimate contract call gas costs",
+  @Operation(tags = Array("wallet"), summary = "Estimate contract call gas costs and current gas price",
     parameters = Array(
       new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
       new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address which executes call")
     ),
     responses = Array(
-      new ApiResponse(responseCode = "200", description = "Costs",content = Array(new Content(schema = new Schema(implementation = classOf[TxStatus])))))
+      new ApiResponse(responseCode = "200", description = "Costs",content = Array(new Content(schema = new Schema(implementation = classOf[TxCost])))))
   )
   def getTxCostRoute(addr:String,oid:Option[String]) = put {
    entity(as[TxCostReq]) { req =>
