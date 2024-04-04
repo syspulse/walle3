@@ -11,7 +11,7 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 import org.web3j.protocol.core.methods.response.EthSign
 import io.syspulse.wal3.cypher.Cypher
-import io.syspulse.wal3.Blockchains
+import io.syspulse.blockchain.Blockchains
 
 class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSigner {
   val log = Logger(s"${this}")

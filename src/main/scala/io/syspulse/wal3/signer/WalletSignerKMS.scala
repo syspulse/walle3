@@ -42,7 +42,7 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 
 import io.syspulse.wal3.cypher.Cypher
-import io.syspulse.wal3.Blockchains
+import io.syspulse.blockchain.Blockchains
 
 import io.syspulse.skel.uri.KmsURI
 import io.syspulse.skel.crypto.kms.KmsClient

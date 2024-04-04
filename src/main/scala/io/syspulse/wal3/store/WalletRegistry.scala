@@ -22,6 +22,9 @@ import scala.concurrent.duration.FiniteDuration
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Await
 import io.syspulse.skel.util.Util
+import io.syspulse.blockchain.Blockchains
+import io.syspulse.blockchain.Blockchain
+import io.syspulse.blockchain.BlockchainRpc
 
 object WalletRegistry {
   val log = Logger(s"${this}")

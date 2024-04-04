@@ -21,6 +21,8 @@ import io.syspulse.wal3.store._
 import io.syspulse.wal3.server._
 import io.syspulse.wal3.cypher._
 
+import io.syspulse.blockchain.Blockchains
+
 case class Config(
   host:String="0.0.0.0",
   port:Int=8080,

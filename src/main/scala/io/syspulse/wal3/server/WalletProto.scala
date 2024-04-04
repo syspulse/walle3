@@ -5,7 +5,7 @@ import scala.collection.immutable
 import io.jvm.uuid._
 
 import io.syspulse.wal3.Wallet
-import io.syspulse.wal3.Blockchain
+import io.syspulse.blockchain.Blockchain
 
 final case class Wallets(wallets: Seq[Wallet],total:Option[Long]=None)
 

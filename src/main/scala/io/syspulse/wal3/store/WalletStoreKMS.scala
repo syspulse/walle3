@@ -32,7 +32,7 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 
 import io.syspulse.skel.crypto.Eth
-import io.syspulse.wal3.Blockchains
+import io.syspulse.blockchain.Blockchains
 import io.syspulse.wal3.signer.WalletSignerKMS
 
 class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag:String = "") extends WalletSignerKMS(blockchains,uri,tag) with WalletStore {

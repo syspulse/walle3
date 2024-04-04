@@ -60,6 +60,7 @@ import io.syspulse.skel.service.telemetry.TelemetryRegistry
 import scala.annotation.tailrec
 import io.syspulse.skel.auth.permissions.rbac
 import io.syspulse.skel.util.Util
+import io.syspulse.blockchain.Blockchain
 
 object WalletRoutes {
   def getOwner(authn:Authenticated)(implicit config:Config):Option[String] = {
