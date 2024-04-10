@@ -6,7 +6,7 @@ import scala.collection.immutable
 import io.jvm.uuid._
 
 import io.syspulse.skel.store.Store
-import io.syspulse.wal3.WalletSecret
+import io.syspulse.wal3.{Wallet,WalletSecret}
 import io.syspulse.wal3.signer.WalletSigner
 
 trait WalletStore extends Store[WalletSecret,String] {  
@@ -17,8 +17,8 @@ trait WalletStore extends Store[WalletSecret,String] {
   
   def del(addr:String,oid:Option[String]):Try[WalletSecret]
   
-  def ???(addr:String,oid:Option[String]):Try[WalletSecret]  
-
+  def ???(addr:String,oid:Option[String]):Try[WalletSecret]
+  
   def all(oid:Option[String]):Seq[WalletSecret]
   
   def size:Long

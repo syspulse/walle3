@@ -16,5 +16,6 @@ MAIN=io.syspulse.wal3.App
 >&2 echo "site: $SITE"
 >&2 echo "main: $MAIN"
 >&2 echo "ACCESS_TOKEN: $ACCESS_TOKEN"
+>&2 echo $@
 
-exec ./run-app.sh $APP $MAIN "$@"
+exec ./run-app.sh $APP $MAIN $@

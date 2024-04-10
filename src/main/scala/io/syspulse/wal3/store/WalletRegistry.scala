@@ -86,7 +86,7 @@ object WalletRegistry {
         }
         
         Behaviors.same
-
+      
       case CreateWallet(oid, req, replyTo) =>
         val w = for {
           ws <- signer.create(oid,req.sk)

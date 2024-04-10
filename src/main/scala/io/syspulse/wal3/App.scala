@@ -22,6 +22,7 @@ import io.syspulse.wal3.server._
 import io.syspulse.wal3.cypher._
 
 import io.syspulse.blockchain.Blockchains
+import java.util.Base64
 
 case class Config(
   host:String="0.0.0.0",
@@ -73,7 +74,8 @@ object App extends skel.Server {
         ArgString('_', "admin.role",s"Admin role in JWT (def: ${d.adminRole})"),
         ArgString('_', "permissions",s"Permissions mode (def: ${d.permissions})"),
                 
-        ArgCmd("server","Command"),
+        ArgCmd("server","Server"),
+        ArgCmd("key","Keys management"),
         ArgParam("<params>",""),
         ArgLogging()
       ).withExit(1)
@@ -170,13 +172,24 @@ object App extends skel.Server {
     Console.err.println(s"Store: ${store}")
     Console.err.println(s"Blockchains: ${blockchains}")
 
-    config.cmd match {
+    val r = config.cmd match {
       case "server" =>
         run( config.host, config.port,config.uri,c,
           Seq(
             (WalletRegistry(store,signer,blockchains),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )
           )
         ) 
+
+      case "key" => 
+        config.params.toList match {
+          case addr :: Nil => 
+            val r = store.?(addr)
+            r.map(ws => {
+              val sk = cypher.decrypt(ws.sk,ws.metadata)
+              s"${ws}\n${ws.sk}\n${sk}"
+            })
+        }
     }
+    Console.err.println(s"r = ${r}")
   }
 }
