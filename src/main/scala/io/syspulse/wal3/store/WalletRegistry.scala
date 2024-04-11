@@ -267,7 +267,7 @@ object WalletRegistry {
             case Success(balances) =>            
               replyTo ! Success(WalletBalance(addr,balances))
             case Failure(e)=> 
-              log.error(s"failed to get balances: ${oid},${addr},${req}",e)
+              log.warn(s"failed to get balances: ${oid},${addr},${req}",e)
               replyTo ! Failure(e)
           }
         }
@@ -327,7 +327,7 @@ object WalletRegistry {
                 
               } catch {
                 case e:Exception => 
-                  log.error(s"failed to get balances: ${oid},${addr},${req}",e)
+                  log.warn(s"failed to get balances: ${oid},${addr},${req}",e)
                   Failure(e)
               }
             }
@@ -369,7 +369,7 @@ object WalletRegistry {
           case Success(status) =>            
             replyTo ! Success(TxStatus(txHash,status))
           case Failure(e)=> 
-            log.error(s"failed to get tx status: ${oid},${txHash},${req}",e)
+            log.warn(s"failed to get tx status: ${oid},${txHash},${req}",e)
             replyTo ! Failure(e)
         }
 
@@ -399,7 +399,7 @@ object WalletRegistry {
           case Success((cost,price)) =>            
             replyTo ! Success(TxCost(cost,price))
           case Failure(e)=> 
-            log.error(s"failed to estimate: ${oid},${addr},${req}",e)
+            log.warn(s"failed to estimate: ${oid},${addr},${req}",e)
             replyTo ! Failure(e)
         }
 
@@ -423,7 +423,7 @@ object WalletRegistry {
             val b = Blockchain.resolveById(r._2.toString).get
             replyTo ! Success(GasPrice(r._1, tok=b.tok, dec=b.dec))
           case Failure(e)=> 
-            log.error(s"failed to get gas price: ${req}",e)
+            log.warn(s"failed to get gas price: ${req}",e)
             replyTo ! Failure(e)
         }
 
