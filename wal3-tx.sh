@@ -5,7 +5,8 @@ TO=${2:-0x70997970C51812dc3A010C7d01b50e0d17dc79C8}
 VALUE=${3:-1 eth}
 
 FEE=${FEE:-3 gwei}
-TIP=${TIP:-0.5 gwei}
+#TIP=${TIP:-0.5 gwei}
+TIP=${TIP:-}
 LIMIT=${LIMIT:-21000}
 DATA=${DATA:-}
 NONCE=${NONCE:--1}

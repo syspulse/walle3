@@ -156,7 +156,7 @@ object WalletRegistry {
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- if(req.gasPrice.isBlank()) Eth.getGasPrice()(web3) else Eth.strToWei(req.gasPrice)(web3)
-          gasTip <- if(req.gasTip.isBlank()) Success(BigInt(0)) else Eth.strToWei(req.gasTip)(web3)
+          gasTip <- if(req.gasTip.isBlank()) Eth.strToWei(config.feeTip)(web3) else Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
           
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
@@ -190,7 +190,7 @@ object WalletRegistry {
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- if(req.gasPrice.isBlank()) Eth.getGasPrice()(web3) else Eth.strToWei(req.gasPrice)(web3)
-          gasTip <- if(req.gasTip.isBlank()) Success(BigInt(0)) else Eth.strToWei(req.gasTip)(web3)
+          gasTip <- if(req.gasTip.isBlank()) Eth.strToWei(config.feeTip)(web3) else Eth.strToWei(req.gasTip)(web3)
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
           
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)

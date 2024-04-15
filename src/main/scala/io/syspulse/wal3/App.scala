@@ -41,6 +41,8 @@ case class Config(
   serviceRole:String = "groups[].service-role",
   adminRole:String = "groups[].admin-role",
   permissions:String = "strict",
+
+  feeTip:String = "10%",    // default FeeTip 
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -73,6 +75,8 @@ object App extends skel.Server {
         ArgString('_', "service.role",s"Service role in JWT (def: ${d.serviceRole})"),
         ArgString('_', "admin.role",s"Admin role in JWT (def: ${d.adminRole})"),
         ArgString('_', "permissions",s"Permissions mode (def: ${d.permissions})"),
+
+        ArgString('_', "fee.tip",s"Default Fee tip (def: ${d.feeTip})"),
                 
         ArgCmd("server","Server"),
         ArgCmd("key","Keys management"),
@@ -99,6 +103,8 @@ object App extends skel.Server {
       serviceRole = c.getString("service.role").getOrElse(d.serviceRole).stripPrefix("'").stripSuffix("'"),
       adminRole = c.getString("admin.role").getOrElse(d.adminRole).stripPrefix("'").stripSuffix("'"),
       permissions = c.getString("permissions").getOrElse(d.permissions),
+
+      feeTip = c.getString("fee.tip").getOrElse(d.feeTip),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),

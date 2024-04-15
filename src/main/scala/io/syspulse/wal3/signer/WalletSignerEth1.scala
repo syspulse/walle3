@@ -50,7 +50,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
            to:String,nonce:Long,data:String,
            gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
            value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
-    log.info(s"sign: ws=${ws}: [${chainId}]: to=${to},nonce=${nonce},gas=${gasPrice}/${gasTip}/${gasLimit},value=${value},data=${data}")
+    log.info(s"sign: ws=${ws}: [${chainId}]: to=${to},nonce=${nonce},gas=${gasPrice}(${gasPrice / 1000000000L}gwei)/${gasTip}(${gasTip / 1000000000L}gwei)/${gasLimit},value=${value},data=${data}")
     for {
       web3 <- blockchains.getWeb3(chainId)
       sk <- cypher.decrypt(ws.sk,ws.metadata)
