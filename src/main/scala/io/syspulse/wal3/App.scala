@@ -42,7 +42,7 @@ case class Config(
   adminRole:String = "groups[].admin-role",
   permissions:String = "strict",
 
-  feeTip:String = "10%",    // default FeeTip 
+  feeTip:String = "-10%",    // default FeeTip 
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -89,13 +89,12 @@ object App extends skel.Server {
       host = c.getString("http.host").getOrElse(d.host),
       port = c.getInt("http.port").getOrElse(d.port),
       uri = c.getString("http.uri").getOrElse(d.uri),
-      
+      jwtUri = c.getString("jwt.uri").getOrElse(d.jwtUri),
+
       datastore = c.getString("datastore").getOrElse(d.datastore),
       signer = c.getString("signer").getOrElse(d.signer),
       cypher = c.getString("cypher").getOrElse(d.cypher),
       blockchains = c.getListString("blockchains",d.blockchains),
-
-      jwtUri = c.getString("jwt.uri").getOrElse(d.jwtUri),
 
       rpcTimeout = c.getLong("rpc.timeout").getOrElse(d.rpcTimeout),
 
