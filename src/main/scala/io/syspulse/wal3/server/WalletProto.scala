@@ -37,6 +37,14 @@ final case class WalletTxReq(
   chain:Option[Blockchain] = Some(Blockchain.ANVIL)
 )
 
+final case class WalletCallReq(
+  oid:Option[String],
+  to:String,
+  data:String,
+  value:Option[String] = None,
+  chain:Option[Blockchain] = Some(Blockchain.ANVIL)
+)
+
 final case class WalletBalanceReq(oid:Option[String],chains:Seq[Blockchain]=Seq())
 final case class TxStatusReq(oid:Option[String],chain:Option[Blockchain])
 final case class TxStatus(hash:String,status:String)
@@ -52,3 +60,5 @@ final case class WalletBalance(addr:String,balances:Seq[BlockchainBalance])
 
 final case class BlockchainReq(chain:Option[Blockchain])
 final case class GasPrice(gas:BigInt,tok:Option[String]=None,dec:Option[Int]=None)
+
+final case class WalletCall(addr:String,result:String)

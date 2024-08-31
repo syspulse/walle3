@@ -44,6 +44,7 @@ object WalletRegistry {
   final case class TxStatusAsk(txHash: String, oid:Option[String], req: TxStatusReq, replyTo: ActorRef[Try[TxStatus]]) extends Command
   final case class TxCostAsk(addr: String, oid:Option[String], req: TxCostReq, replyTo: ActorRef[Try[TxCost]]) extends Command
   final case class GasPriceAsk(req: BlockchainReq, replyTo: ActorRef[Try[GasPrice]]) extends Command
+  final case class CallWallet(addr: String, oid:Option[String], req: WalletCallReq, replyTo: ActorRef[Try[WalletCall]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
     registry(store,signer,blockchains)(config)
@@ -217,6 +218,31 @@ object WalletRegistry {
         }
 
         Behaviors.same
+
+      case CallWallet(addr0, oid, req, replyTo) =>
+        log.info(s"call: ${addr0}, oid=${oid}, req=${req}")            
+        val addr = addr0.toLowerCase()
+
+        val result:Try[String] = for {
+          chainId <- Util.succeed(req.chain.getOrElse(Blockchain.ANVIL).asLong)          
+          web3 <- blockchains.getWeb3(chainId)
+          value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
+                    
+          result <- {
+            Eth.call("",req.to,req.data)(web3)
+          }
+        } yield result
+        
+        result match {
+          case Success(result) =>            
+            replyTo ! Success(WalletCall(addr,result))
+          case Failure(e)=> 
+            log.error(s"failed to call contract: ${oid},${addr},${req}",e)
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
+
 
       case BalanceWallet(addr0, oid, req, replyTo) => 
         log.info(s"balance: ${addr0}, oid=${oid}, req=${req}")            
