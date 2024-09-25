@@ -42,6 +42,7 @@ final case class WalletCallReq(
   to:String,
   data:String,
   value:Option[String] = None,
+  output:Option[String] = None,
   chain:Option[Blockchain] = Some(Blockchain.ANVIL)
 )
 

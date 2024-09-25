@@ -260,7 +260,11 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   @Operation(tags = Array("wallet"),summary = "Call contract (not transaction)",
     parameters = Array(
       new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
-      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address")),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address"),
+      new Parameter(name = "to", in = ParameterIn.PATH, description = "Contract address"),
+      new Parameter(name = "data", in = ParameterIn.PATH, description = "Encoded function"),
+      new Parameter(name = "output", in = ParameterIn.PATH, description = "Output type (address,string,uint256,...)"),
+    ),
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletCallReq])))),
     responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletCall])))))
   )

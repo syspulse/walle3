@@ -229,7 +229,7 @@ object WalletRegistry {
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
                     
           result <- {
-            Eth.call("",req.to,req.data)(web3)
+            Eth.call("",req.to,req.data,req.output)(web3)
           }
         } yield result
         
@@ -259,7 +259,7 @@ object WalletRegistry {
                   if(b.id.isDefined)
                     blockchains.get(b.id.get.toLong)
                   else
-                    blockchains.getByName(b.name)
+                    blockchains.getByName(b.bid)
                 })
               
               val web3s = bb.flatMap(b => {
@@ -309,7 +309,7 @@ object WalletRegistry {
                   if(b.id.isDefined)
                     blockchains.get(b.id.get.toLong)
                   else
-                    blockchains.getByName(b.name)
+                    blockchains.getByName(b.bid)
                 })
               
               val web3s = bb.flatMap(b => {
