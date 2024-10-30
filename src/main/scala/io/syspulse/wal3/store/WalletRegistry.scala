@@ -259,7 +259,7 @@ object WalletRegistry {
                   if(b.id.isDefined)
                     blockchains.get(b.id.get.toLong)
                   else
-                    blockchains.getByName(b.bid)
+                    blockchains.getByName(b.name)
                 })
               
               val web3s = bb.flatMap(b => {
@@ -309,7 +309,7 @@ object WalletRegistry {
                   if(b.id.isDefined)
                     blockchains.get(b.id.get.toLong)
                   else
-                    blockchains.getByName(b.bid)
+                    blockchains.getByName(b.name)
                 })
               
               val web3s = bb.flatMap(b => {
