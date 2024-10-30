@@ -229,7 +229,7 @@ object WalletRegistry {
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
                     
           result <- {
-            Eth.call("",req.to,req.data,req.output)(web3)
+            Eth.call(addr,req.to,req.data,req.output)(web3)
           }
         } yield result
         

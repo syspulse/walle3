@@ -266,7 +266,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
       new Parameter(name = "output", in = ParameterIn.PATH, description = "Output type (address,string,uint256,...)"),
     ),
     requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletCallReq])))),
-    responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletCall])))))
+    responses = Array(new ApiResponse(responseCode = "200", description = "result output",content = Array(new Content(schema = new Schema(implementation = classOf[WalletCall])))))
   )
   def callWalletRoute(addr:String,oid:Option[String]) = post {
     entity(as[WalletCallReq]) { req =>
