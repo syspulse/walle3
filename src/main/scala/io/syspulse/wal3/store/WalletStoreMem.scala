@@ -16,6 +16,8 @@ class WalletStoreMem extends WalletStore {
   
   var wallets: Map[String,WalletSecret] = Map()
 
+  def id:String = "mem"
+
   def all(oid:Option[String]):Seq[WalletSecret] = 
     if(oid==None) 
       wallets.values.toSeq 

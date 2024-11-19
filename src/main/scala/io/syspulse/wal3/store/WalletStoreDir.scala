@@ -21,6 +21,8 @@ import io.syspulse.wal3.server.WalletJson._
 class WalletStoreDir(dir:String = "store/") extends StoreDir[WalletSecret,String](dir) with WalletStore {
   val store = new WalletStoreMem()
 
+  def id:String = "dir"
+
   def toKey(addr:String):String = addr
 
   def all(oid:Option[String]):Seq[WalletSecret] = store.all(oid)

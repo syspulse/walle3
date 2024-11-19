@@ -22,6 +22,8 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   extends StoreDB[WalletSecret,String](dbConfigRef,"wallet_secret",Some(configuration)) 
   with WalletStore {
 
+  def id:String = "db"
+
   import ctx._
   
   val table = dynamicQuerySchema[WalletSecret](tableName)
@@ -81,7 +83,8 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
     } catch {
       case e:Exception => { 
         // short name without full stack (change to check for duplicate index)
-        log.warn(s"failed to create: ${e.getMessage()}"); 
+        // remove ERROR to avoid kubernetes treating it as ERROR
+        log.warn(s"failed to create: ${e.getMessage().replaceFirst("ERROR: ","")}"); 
         Failure(e) 
       }
     }

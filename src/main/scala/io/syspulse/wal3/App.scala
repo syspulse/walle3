@@ -143,7 +143,7 @@ object App extends skel.Server {
       }
     }    
 
-    val store = config.datastore.split("://").toList match {
+    def parseStore(ds:String):WalletStore = ds.split("://").toList match {
       // WARNING: kms signer must be also StoreKMS
       case "kms" :: uri => 
         
@@ -167,10 +167,17 @@ object App extends skel.Server {
       case "jdbc" :: typ :: db :: Nil => new WalletStoreDB(c,s"${typ}://${db}")
 
       case "mem" :: _ => new WalletStoreMem()
+
+      case "many" :: stores => 
+        val wss = config.datastore.stripPrefix("many://").split(",").map(s => parseStore(s))
+        new WalletStoreMany(wss.toSeq)
+
       case _ => 
         Console.err.println(s"Uknown datastore: '${config.datastore}'")
         sys.exit(1)      
     }
+
+    val store = parseStore(config.datastore)
 
     Console.err.println(s"Cypher: ${cypher}")
     Console.err.println(s"Signer: ${signer}")

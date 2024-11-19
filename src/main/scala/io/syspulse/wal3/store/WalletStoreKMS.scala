@@ -36,7 +36,8 @@ import io.syspulse.blockchain.Blockchains
 import io.syspulse.wal3.signer.WalletSignerKMS
 
 class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag:String = "") extends WalletSignerKMS(blockchains,uri,tag) with WalletStore {
-  //val log = Logger(s"${this}")
+  
+  def id:String = "kms"
   
   def all(oid:Option[String]):Seq[WalletSecret] = list(None,oid)    
 

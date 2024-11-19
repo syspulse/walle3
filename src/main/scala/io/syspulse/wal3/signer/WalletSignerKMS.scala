@@ -53,31 +53,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
   val log = Logger(s"${this}")
 
   val CYPHER = "KMS"
-  
-  // // val region = sys.env.get("AWS_REGION").getOrElse("")
-  // // val account = sys.env.get("AWS_ACCOUNT").getOrElse("")
-  // val kmsUri = KmsURI(uri)
-  
-  // val kms = (for {
-  //   k0 <- Success(AWSKMSClientBuilder.standard)
-  //   k1 <- {
-  //     if(kmsUri.host.isDefined)
-  //       Success(k0.withEndpointConfiguration(new EndpointConfiguration(kmsUri.host.get,kmsUri.region.getOrElse(""))))
-  //     else
-  //       Success(k0)
-  //   }
-  //   k2 <- {
-  //     if(kmsUri.region.isDefined)
-  //       Success(k1.withRegion(kmsUri.region.get))
-  //     else
-  //       Success(k1)
-  //   }    
-  //   k10 <- Success(k2.build)
-  // } yield k10) match {
-  //   case Success(kms) => kms
-  //   case Failure(e) => throw e
-  // }
-  
+    
   val kms = new KmsClient(uri).getAWSKMS()
   
   log.info(s"KMS(${uri}): ${kms}")  
@@ -94,13 +70,6 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
   // ---- KMS --------------------------------------------------------------------------------------------------------------
 
   def alias(addr:String,oid:Option[String]) = s"alias/${addr.toLowerCase()}/${if(oid.isDefined) oid.get.toString else ""}"
-
-  //val pkBytes =  KeyFactory.getInstance("ECDSA").generatePublic(new X509EncodedKeySpec(der)).getEncoded()
-  //val pkBytes = SubjectPublicKeyInfo.getInstance(ASN1Sequence.getInstance(der)).parsePublicKey().getEncoded()
-            
-  // val algId = new AlgorithmIdentifier(X9ObjectIdentifiers.id_ecPublicKey, SECObjectIdentifiers.secp256k1);
-  // val subjectPublicKeyInfo = new SubjectPublicKeyInfo(algId, der);
-  // val pkBytes = subjectPublicKeyInfo.getEncoded("DER")
           
   // The first 23 bytes are just ASN.1 stuff. The remaining 65 bytes contain the uncompressed public key.
   // The first hexadecimal character is 04 (to signify a 65-byte uncompressed public key), followed by the 32-byte X value, followed by the 32-byte Y value         
@@ -279,14 +248,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
         }
       }
       sig <- {
-        Success(Util.hex(sigVRS))
-        // try {
-        //   val data = TransactionEncoder.encode(rawTx, signatureData)
-        //   Success(data)
-        // } catch {
-        //   case e:Exception => 
-        //     Failure(new Exception(s"could not sign: ${ws.addr}",e))
-        // }
+        Success(Util.hex(sigVRS))        
       }
     } yield sig    
   }
