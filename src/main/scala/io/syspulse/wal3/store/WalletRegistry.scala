@@ -25,6 +25,8 @@ import io.syspulse.skel.util.Util
 import io.syspulse.blockchain.Blockchains
 import io.syspulse.blockchain.Blockchain
 import io.syspulse.blockchain.BlockchainRpc
+import akka.actor.typed.ActorSystem
+import java.util.concurrent.TimeoutException
 
 object WalletRegistry {
   val log = Logger(s"${this}")
@@ -46,12 +48,20 @@ object WalletRegistry {
   final case class GasPriceAsk(req: BlockchainReq, replyTo: ActorRef[Try[GasPrice]]) extends Command
   final case class CallWallet(addr: String, oid:Option[String], req: WalletCallReq, replyTo: ActorRef[Try[WalletCall]]) extends Command
   
-  def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
-    registry(store,signer,blockchains)(config)
+  def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains,tips:FeeTips)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
+    //registry(store,signer,blockchains)(config)
+    Behaviors.setup { context =>
+      registry(store, signer, blockchains, tips, context.system)(config)
+    }
   }
 
-  private def registry(store: WalletStore,signer:WalletSigner,blockchains:Blockchains)(config:Config): Behavior[io.syspulse.skel.Command] = {    
-        
+  private def registry(
+    store: WalletStore,
+    signer:WalletSigner,
+    blockchains:Blockchains,
+    tips:FeeTips,
+    system: ActorSystem[_])(config:Config): Behavior[io.syspulse.skel.Command] = {
+      
     // Rules of oid
     // 1. if oid == None - this is access from admin/service account
     // 2. if oid == Some - this is access from user and needs to be validated
@@ -157,7 +167,12 @@ object WalletRegistry {
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- if(req.gasPrice.isBlank()) Eth.getGasPrice()(web3) else Eth.strToWei(req.gasPrice)(web3)
-          gasTip <- if(req.gasTip.isBlank()) Eth.strToWei(config.feeTip)(web3) else Eth.strToWei(req.gasTip)(web3)
+          gasTip <- {
+            if(req.gasTip.isBlank()) 
+              Eth.strToWei(tips.get(req.chain))(web3) 
+            else 
+              Eth.strToWei(req.gasTip)(web3)
+          }
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
           
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
@@ -191,7 +206,14 @@ object WalletRegistry {
           web3 <- blockchains.getWeb3(chainId)
           nonceTx <- if(req.nonce == -1L) Eth.getNonce(addr)(web3) else Success(req.nonce)
           gasPrice <- if(req.gasPrice.isBlank()) Eth.getGasPrice()(web3) else Eth.strToWei(req.gasPrice)(web3)
-          gasTip <- if(req.gasTip.isBlank()) Eth.strToWei(config.feeTip)(web3) else Eth.strToWei(req.gasTip)(web3)
+          gasTip <- {
+            //if(req.gasTip.isBlank()) Eth.strToWei(config.feeTip)(web3) else Eth.strToWei(req.gasTip)(web3)
+            // ATTENTION: tip=0 is now value and not special case for ext-project !
+            if(req.gasTip.isBlank()) 
+              Eth.strToWei(tips.get(req.chain))(web3) 
+            else 
+              Eth.strToWei(req.gasTip)(web3)
+          }
           value <- Eth.strToWei(req.value.getOrElse("0"))(web3)
           
           b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
@@ -298,6 +320,14 @@ object WalletRegistry {
           }
         }
 
+        // Helper function to create a timeout future
+        def withTimeout[T](future: Future[T], timeout: FiniteDuration): Future[T] = {
+          val timeoutFut = akka.pattern.after(timeout, using = system.classicSystem.scheduler) {
+            Future.failed(new TimeoutException(s"Future timed out after ${timeout.toMillis}ms"))
+          }
+          Future.firstCompletedOf(Seq(future, timeoutFut))
+        }
+
         def getBalanceAsync(addr:String, oid:Option[String], req:WalletBalanceReq, replyTo: ActorRef[Try[WalletBalance]]) = {
           
           val balances = for {
@@ -326,36 +356,43 @@ object WalletRegistry {
             ff <- {
               val ff = web3s.map(web3 => {
                 log.info(s"balance: ${addr}: ${web3}")
-                // ask for Future wrapped into try
-                val f = Eth.getBalanceAsync(addr)(web3._2,ec)
-                f                
+                
+                withTimeout(Eth.getBalanceAsync(addr)(web3._2,ec),FiniteDuration(config.rpcTimeout,TimeUnit.MILLISECONDS))
+                  .map(b => Success(b,web3._1))
+                  .recover { 
+                    case e: TimeoutException =>
+                      log.warn(s"balance: ${addr}: Request timeout: ${web3._1}: ${e.getMessage}")
+                      Failure(e)
+                    case e => 
+                      log.warn(s"balance: ${addr}: Request failed: ${web3._1}: ${e.getMessage}")
+                      Failure(e)
+                  }
               })
               Success(ff)
             }
-
+            
             balances <- {
+              val f = Future.sequence(ff) //Util.waitAll(ff)
               
-              val f = Util.waitAll(ff)
               try {
-                val bals = Await.result(f,FiniteDuration(config.rpcTimeout,TimeUnit.MILLISECONDS))
-                
-                // Can iterate over web3s because all future must return successfully here            
-                Success(
-                  web3s.zip(bals).map{ case(web3,bal) =>
-                    bal match {
-                      case Success(bal) => BlockchainBalance(web3._1.name,web3._1.id,bal)
-                      case Failure(e) => 
-                        log.warn(s"failed to get balance: ${oid},${addr},${web3}",e)
-                        BlockchainBalance(web3._1.name,web3._1.id,-1)
-                    }
-                  }
-                )
-                
+                // ATTENTION: timeout must be smaller than akka actor timeout !
+                Await.result(f,FiniteDuration(config.rpcTimeout + 1000L,TimeUnit.MILLISECONDS))
               } catch {
                 case e:Exception => 
-                  log.warn(s"failed to get balances: ${oid},${addr},${req}",e)
-                  Failure(e)
+                  log.warn(s"timeout: ${oid},${addr},${req}",e)
               }
+                            
+              val bb = web3s.zip(ff).map{ case(web3,fbal) => {
+                // future already timed out, so just get it
+                val bal = Await.result(fbal,FiniteDuration(100L,TimeUnit.MILLISECONDS))
+                  bal match {
+                    case Success((bal,rpc)) => BlockchainBalance(web3._1.name,web3._1.id,bal)
+                    case Failure(e) => 
+                      log.warn(s"failed to get balance: ${oid},${addr},${web3}",e)
+                      BlockchainBalance(web3._1.name,web3._1.id,-1,Some(e.getMessage))
+                  }}
+                }
+              Success(bb)
             }
             
           } yield balances
@@ -402,7 +439,7 @@ object WalletRegistry {
         Behaviors.same
 
       case TxCostAsk(addr0, oid, req, replyTo) =>
-        log.info(s"cost: ${addr0}, oid=${oid}, req=${req}")            
+        log.info(s"tx estimate: ${addr0}, oid=${oid}, req=${req}")            
         val addr = addr0.toLowerCase()
 
         val r:Try[(BigInt,BigInt)] = for {
@@ -420,10 +457,13 @@ object WalletRegistry {
             Eth.getGasPrice()(web3)
           }
         } yield (cost,price)
+
+        // fee tip should be dynamic
+        val tip = Some(tips.get(req.chain))  //if(config.feeTip.isEmpty) None else Some(config.feeTip)
         
         r match {
           case Success((cost,price)) =>            
-            replyTo ! Success(TxCost(cost,price))
+            replyTo ! Success(TxCost(cost,price,tip))
           case Failure(e)=> 
             log.warn(s"failed to estimate: ${oid},${addr},${req}",e)
             replyTo ! Failure(e)

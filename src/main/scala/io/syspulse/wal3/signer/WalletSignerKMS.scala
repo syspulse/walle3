@@ -166,7 +166,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
            gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
            value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
     
-    log.info(s"sign: ws=${ws}: [${chainId}]: to=${to},nonce=${nonce},gas=${gasPrice}(${gasPrice / 1000000000L}gwei)/${gasTip}(${gasTip / 1000000000L}gwei)/${gasLimit},value=${value},data=${data}")
+    log.info(s"sign: ws=${ws}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
     
     val rawTx: RawTransaction = 
       RawTransaction.createTransaction(

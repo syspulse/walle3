@@ -22,6 +22,8 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   extends StoreDB[WalletSecret,String](dbConfigRef,"wallet_secret",Some(configuration)) 
   with WalletStore {
 
+  lazy private val log = Logger(getClass)
+  
   def id:String = "db"
 
   import ctx._
@@ -84,7 +86,7 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
       case e:Exception => { 
         // short name without full stack (change to check for duplicate index)
         // remove ERROR to avoid kubernetes treating it as ERROR
-        log.warn(s"failed to create: ${e.getMessage().replaceFirst("ERROR: ","")}"); 
+        log.warn(s"failed to create: ${e.getMessage().replaceFirst("ERROR: ","")}");
         Failure(e) 
       }
     }

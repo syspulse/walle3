@@ -26,7 +26,7 @@ object Dependencies {
     lazy val elastic4sVersion = "7.17.3"
     
     lazy val skelVersion = "0.0.10"
-    lazy val appVersion = "0.0.11"
+    lazy val appVersion = "0.0.12"
 
     lazy val jarPrefix = "server-"
     
@@ -169,6 +169,7 @@ object Dependencies {
     val libAWSJavaSDK =       "com.amazonaws"                  % "aws-java-sdk-bundle" % "1.11.874" //"1.12.247"
     val libAWSJavaSNS =       "com.amazonaws"                  % "aws-java-sdk-sns"    % "1.11.879"
     val libAWSJavaKMS =       "com.amazonaws"                  % "aws-java-sdk-kms"    % "1.11.879"
+    val libAWSJavaSTS =       "com.amazonaws"                  % "aws-java-sdk-sts"    % "1.11.879"
 
     val libJaninoCompiler =   "org.codehaus.janino"            %  "commons-compiler"   % janinoVersion
 

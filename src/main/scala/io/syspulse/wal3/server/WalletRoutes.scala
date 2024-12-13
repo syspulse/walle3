@@ -331,7 +331,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
     responses = Array(
       new ApiResponse(responseCode = "200", description = "Gas price",content = Array(new Content(schema = new Schema(implementation = classOf[GasPrice])))))
   )
-  def geBlockchainPriceRoute(blockchain:String) = get {
+  def geBlockchainPriceRoute(blockchain:String) = get {    
     complete(blockchainPrice(BlockchainReq(chain = Blockchain.resolve(blockchain))))
   }
   

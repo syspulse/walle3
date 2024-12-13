@@ -311,6 +311,7 @@ lazy val walle3 = (project in file("."))
 
     libraryDependencies ++= libSkel ++ Seq(  
       libAWSJavaKMS,
+      libAWSJavaSTS
       //libBouncyCastle
     ),    
   )

@@ -34,7 +34,7 @@ case class Config(
   cypher:String = "key://",
   blockchains:Seq[String] = Seq(),
 
-  rpcTimeout:Long = 15000,
+  rpcTimeout:Long = 7000,
 
   jwtUri:String = "hs512://",
   ownerAttr:String = "tenantId",
@@ -42,7 +42,7 @@ case class Config(
   adminRole:String = "groups[].admin-role",
   permissions:String = "strict",
 
-  feeTip:String = "-10%",    // default FeeTip 
+  feeTip:Seq[String] = Seq(),    // default FeeTip 
       
   cmd:String = "server",
   params: Seq[String] = Seq(),
@@ -103,7 +103,7 @@ object App extends skel.Server {
       adminRole = c.getString("admin.role").getOrElse(d.adminRole).stripPrefix("'").stripSuffix("'"),
       permissions = c.getString("permissions").getOrElse(d.permissions),
 
-      feeTip = c.getString("fee.tip").getOrElse(d.feeTip),
+      feeTip = c.getListString("fee.tip",d.feeTip),
 
       cmd = c.getCmd().getOrElse(d.cmd),
       params = c.getParams(),
@@ -116,6 +116,7 @@ object App extends skel.Server {
     }
 
     val blockchains = Blockchains(config.blockchains)
+    val tips = FeeTips(config.feeTip)
 
     val cypher = config.cypher.split("://").toList match {
       case "none" :: prefix :: _ => new CypherNone(prefix)
@@ -183,12 +184,13 @@ object App extends skel.Server {
     Console.err.println(s"Signer: ${signer}")
     Console.err.println(s"Store: ${store}")
     Console.err.println(s"Blockchains: ${blockchains}")
+    Console.err.println(s"FeeTips: ${tips}")
 
     val r = config.cmd match {
       case "server" =>
         run( config.host, config.port,config.uri,c,
           Seq(
-            (WalletRegistry(store,signer,blockchains),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )
+            (WalletRegistry(store,signer,blockchains,tips),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )
           )
         ) 
 

@@ -51,12 +51,16 @@ final case class TxStatusReq(oid:Option[String],chain:Option[Blockchain])
 final case class TxStatus(hash:String,status:String)
 
 final case class TxCostReq(oid:Option[String],chain:Option[Blockchain],to:String,data:String)
-final case class TxCost(cost:BigInt,price:BigInt)
+final case class TxCost(
+  cost:BigInt,
+  price:BigInt,
+  tip:Option[String]
+)
 
 final case class WalletSig(addr:String,sig:String)
 final case class WalletTx(addr:String,txHash:String)
 
-final case class BlockchainBalance(name:String,id:Long,balance:BigInt)
+final case class BlockchainBalance(name:String,id:Long,balance:BigInt,err:Option[String]=None)
 final case class WalletBalance(addr:String,balances:Seq[BlockchainBalance])
 
 final case class BlockchainReq(chain:Option[Blockchain])
