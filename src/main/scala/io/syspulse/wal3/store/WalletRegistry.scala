@@ -89,10 +89,10 @@ object WalletRegistry {
         
         ws match {
           case Success(ws) =>
-            log.info(s"?: ${ws}")
+            log.debug(s"?: ${ws}")
             replyTo ! Success(Wallet(ws.addr,ws.typ,ws.ts,ws.oid))
           case Failure(e)=> 
-            log.error(s"failed to get wallet: ${oid},${addr}",e)
+            log.warn(s"failed to get wallet: ${oid},${addr}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
         
@@ -113,7 +113,7 @@ object WalletRegistry {
           case Success(_) =>            
             replyTo ! w
           case Failure(e)=> 
-            log.error(s"failed to create wallet: ${oid},${req}",e)
+            log.error(s"failed to create wallet: ${oid},${req}: ${e.getMessage()}",e)
             replyTo ! Failure(e)
         }
 
@@ -134,7 +134,7 @@ object WalletRegistry {
           case Success(_) =>            
             replyTo ! w
           case Failure(e)=> 
-            log.error(s"failed to create wallet: ${oid},${req}",e)
+            log.error(s"failed to create wallet: ${oid},${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
@@ -150,7 +150,7 @@ object WalletRegistry {
             log.info(s"del: ${ws}")
             replyTo ! Success(Wallet(ws.addr, ws.typ, ws.ts,ws.oid))
           case Failure(e) => 
-            log.error(s"failed to delete wallet: ${oid},${addr}",e)
+            log.error(s"failed to delete wallet: ${oid},${addr}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
         
@@ -189,7 +189,7 @@ object WalletRegistry {
           case Success(sig) =>            
             replyTo ! Success(WalletSig(addr,sig))
           case Failure(e)=> 
-            log.error(s"failed to sign transaction: ${oid},${addr},${req}",e)
+            log.error(s"failed to sign transaction: ${oid},${addr},${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
@@ -235,7 +235,7 @@ object WalletRegistry {
           case Success(hash) =>            
             replyTo ! Success(WalletTx(addr,hash))
           case Failure(e)=> 
-            log.error(s"failed to send transaction: ${oid},${addr},${req}",e)
+            log.error(s"failed to send transaction: ${oid},${addr},${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
@@ -259,7 +259,7 @@ object WalletRegistry {
           case Success(result) =>            
             replyTo ! Success(WalletCall(addr,result))
           case Failure(e)=> 
-            log.error(s"failed to call contract: ${oid},${addr},${req}",e)
+            log.warn(s"failed to call contract: ${oid},${addr},${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
@@ -361,10 +361,10 @@ object WalletRegistry {
                   .map(b => Success(b,web3._1))
                   .recover { 
                     case e: TimeoutException =>
-                      log.warn(s"balance: ${addr}: Request timeout: ${web3._1}: ${e.getMessage}")
+                      log.warn(s"balance: ${addr}: Request timeout: ${web3._1}: ${e.getMessage}",e)
                       Failure(e)
                     case e => 
-                      log.warn(s"balance: ${addr}: Request failed: ${web3._1}: ${e.getMessage}")
+                      log.warn(s"balance: ${addr}: Request failed: ${web3._1}: ${e.getMessage}",e)
                       Failure(e)
                   }
               })
@@ -379,7 +379,7 @@ object WalletRegistry {
                 Await.result(f,FiniteDuration(config.rpcTimeout + 1000L,TimeUnit.MILLISECONDS))
               } catch {
                 case e:Exception => 
-                  log.warn(s"timeout: ${oid},${addr},${req}",e)
+                  log.warn(s"timeout: ${oid},${addr},${req}: ${e.getMessage}",e)
               }
                             
               val bb = web3s.zip(ff).map{ case(web3,fbal) => {
@@ -388,7 +388,7 @@ object WalletRegistry {
                   bal match {
                     case Success((bal,rpc)) => BlockchainBalance(web3._1.name,web3._1.id,bal)
                     case Failure(e) => 
-                      log.warn(s"failed to get balance: ${oid},${addr},${web3}",e)
+                      log.warn(s"failed to get balance: ${oid},${addr},${web3}: ${e.getMessage}",e)
                       BlockchainBalance(web3._1.name,web3._1.id,-1,Some(e.getMessage))
                   }}
                 }
@@ -401,7 +401,7 @@ object WalletRegistry {
             case Success(balances) =>            
               replyTo ! Success(WalletBalance(addr,balances))
             case Failure(e)=> 
-              log.error(s"failed to get balances: ${oid},${addr},${req}",e)
+              log.warn(s"failed to get balances: ${oid},${addr},${req}: ${e.getMessage}",e)
               replyTo ! Failure(e)
           }
         }
@@ -432,7 +432,7 @@ object WalletRegistry {
           case Success(status) =>            
             replyTo ! Success(TxStatus(txHash,status))
           case Failure(e)=> 
-            log.warn(s"failed to get tx status: ${oid},${txHash},${req}",e)
+            log.warn(s"failed to get tx status: ${oid},${txHash},${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
@@ -465,7 +465,7 @@ object WalletRegistry {
           case Success((cost,price)) =>            
             replyTo ! Success(TxCost(cost,price,tip))
           case Failure(e)=> 
-            log.warn(s"failed to estimate: ${oid},${addr},${req}",e)
+            log.warn(s"failed to estimate: ${oid},${addr},${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
@@ -489,7 +489,7 @@ object WalletRegistry {
             val b = Blockchain.resolveById(r._2.toString).get
             replyTo ! Success(GasPrice(r._1, tok=b.tok, dec=b.dec))
           case Failure(e)=> 
-            log.warn(s"failed to get gas price: ${req}",e)
+            log.warn(s"failed to get gas price: ${req}: ${e.getMessage}",e)
             replyTo ! Failure(e)
         }
 
