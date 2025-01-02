@@ -136,8 +136,10 @@ object App extends skel.Server {
     }    
 
     var signer = config.signer.split("://").toList match {
-      case "eth1" ::  uri => new WalletSignerEth1(cypher,blockchains)
-      case "kms" ::  uri => new WalletStoreKMS(blockchains,uri.mkString("://"))
+      case "eth1" :: uri => new WalletSignerEth1(cypher,blockchains)
+      case "kms" :: uri => new WalletStoreKMS(blockchains,uri.mkString("://"))
+      case "sss" :: uri :: Nil => new WalletSignerSSS(cypher,uri,blockchains)
+      case "sss" :: Nil => new WalletSignerSSS(cypher,"3:5",blockchains)
       case _ => {        
         Console.err.println(s"Uknown signer: '${config.signer}'")
         sys.exit(1)
@@ -192,18 +194,22 @@ object App extends skel.Server {
           Seq(
             (WalletRegistry(store,signer,blockchains,tips),"WalletRegistry",(r, ac) => new WalletRoutes(r)(ac,config) )
           )
-        ) 
+        )
 
       case "key" => 
         config.params.toList match {
-          case addr :: Nil => 
+          case "get" :: addr :: Nil => 
             val r = store.?(addr)
             r.map(ws => {
               val sk = cypher.decrypt(ws.sk,ws.metadata)
               s"${ws}\n${ws.sk}\n${sk}"
             })
+          case "create" :: sk :: Nil => 
+            signer.create(None,sk)
+          case "random" :: Nil => 
+            signer.random(None)
         }
     }
-    Console.err.println(s"r = ${r}")
+    Console.println(s"r = ${r}")
   }
 }

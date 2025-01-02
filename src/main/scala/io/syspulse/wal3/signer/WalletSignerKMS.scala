@@ -152,7 +152,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
           pk = pk, 
           addr = addr,
           oid = oid,
-          typ = "ECDSA",
+          typ = "kms:ECDSA:secp256k1",
           cypher = CYPHER,
           metadata = keyId
         )

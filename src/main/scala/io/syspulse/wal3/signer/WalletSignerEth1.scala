@@ -16,6 +16,8 @@ import io.syspulse.blockchain.Blockchains
 class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSigner {
   val log = Logger(s"${this}")
 
+  val DEF_TYPE = "eth1:ECDSA:secp256k1"
+
   def random(oid:Option[String]):Try[WalletSecret] = {
     log.info(s"random: oid=${oid}")
     for {
@@ -26,6 +28,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
         Util.hex(kp.pk),
         Eth.address(kp.pk),
         oid,
+        typ = DEF_TYPE,
         metadata = seed
       ))
      } yield ws
@@ -41,6 +44,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
         Util.hex(kp.pk),
         Eth.address(kp.pk),
         oid,
+        typ = DEF_TYPE,
         metadata = seed
       ))
      } yield ws
