@@ -22,19 +22,3 @@ case class WalletSecret(
 ) {
   override def toString = s"WalletSecret(${sk.take(4)}*****,${pk},${addr},${oid},${typ},${ts},${cypher},${Util.hex(metadata.getBytes())})"
 }
-
-// object WalletSecretEncrypted {
-//   def from(wse:WalletSecretEncrypted)(implicit cypher:Cypher):Try[WalletSecret] = {
-//     for {
-//       sk <- cypher.decrypt(wse.sk, wse.metadata)
-//       ws <- Success(WalletSecret(sk, wse.pk, wse.addr, wse.oid, wse.typ, wse.ts))
-//     } yield (ws)  
-//   }
-
-//   def to(ws:WalletSecret)(implicit cypher:Cypher):Try[WalletSecretEncrypted] = {
-//     for {
-//       (sk,metadata) <- cypher.encrypt(ws.sk)
-//       wse <- Success(WalletSecretEncrypted(sk, ws.pk, ws.addr, ws.oid, ws.typ, ws.ts, metadata = metadata))
-//     } yield wse
-//   }
-// }

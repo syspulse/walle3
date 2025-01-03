@@ -20,9 +20,12 @@ import scala.util.Random
 object SecretShare {
   val log = Logger(s"${this}")
 
-  def fromList(shares:String):List[String] = shares.split(",",1024).toList
+  def fromList(shares:String):List[String] = shares.split(",",1024).map(_.trim).toList
+  def toList(shares:List[String]):String = shares.mkString(",")
   
   def fromShare(share:Share):String = s"${share.x}/${share.y}/${Util.hex(share.hash.toArray)}/${share.primeUsed}"
+  def fromShares(shares:List[Share]):List[String] = shares.map(fromShare(_))
+  
   def toShare(s:String):Option[Share] = {
     s.split("/") match {
       case Array(x,y,hash,primeUsed) =>
@@ -35,16 +38,16 @@ object SecretShare {
   def toShares(shares:String):List[Share] = fromList(shares).flatMap(toShare(_))
   def toShares(shares:List[String]):List[Share] = shares.flatMap(toShare(_))
 
-  def randomShares(num:Int = 1):List[String] = {
-    val ss = for(i <- 0 until num) yield 
-      Share(
-        BigInt(Random.nextInt(1000000000)),
-        BigInt(Random.nextInt(2000000000)),
-        Random.nextBytes(32).toList,
-        Random.nextString(10)
-      )
-    ss.map(SecretShare.fromShare(_)).toList
-  }
+  // def randomShares(num:Int = 1):List[String] = {
+  //   val ss = for(i <- 0 until num) yield 
+  //     Share(
+  //       BigInt(Random.nextInt(1000000000)),
+  //       BigInt(Random.nextInt(2000000000)),
+  //       Random.nextBytes(32).toList,
+  //       Random.nextString(10)
+  //     )
+  //   ss.map(SecretShare.fromShare(_)).toList
+  // }
 
   def apply(s:String) = toShares(s)
 }
@@ -65,10 +68,14 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
     log.info(s"random: oid=${oid}: ${toType}")
     
     for {
-      k <- Eth.generateRandom()
-      shares <- SSS.createShares(k.sk,m,n)
+      
+      //k <- Eth.generateRandom()
+      k <- Eth.random()
+      //shares <- SSS.createShares(k.sk,m,n)
+      shares <- SSS.createShares(Util.hex(k.sk),m,n)
+
       encrypted <- {
-        log.debug(s"shares=${shares}")
+        log.info(s"shares=${shares}")
         val ss = shares.map(s => cypher.encrypt(SecretShare.fromShare(s)))        
         Try(ss.map(_.get))
       }
@@ -90,8 +97,11 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
   def create(oid:Option[String],sk:String):Try[WalletSecret] = {
     log.info(s"create: oid=${oid}, sk=${sk}")    
     for {
-      k <- Eth.generate(sk)
-      shares <- SSS.createShares(sk,m,n)      
+      
+      k <- Eth.generate(sk)      
+      //shares <- SSS.createShares(sk,m,n)
+      shares <- SSS.createShares(Util.hex(k.sk),m,n)      
+      
       encrypted <- {
         log.debug(s"shares=${shares}")
         val ss = shares.map(s => cypher.encrypt(SecretShare.fromShare(s)))
@@ -116,26 +126,28 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
            to:String,nonce:Long,data:String,
            gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
            value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
+
     log.info(s"sign: ws=${ws}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
     
     for {
       web3 <- blockchains.getWeb3(chainId)
       shares <- {
-        val shareEncrypted = ws.sk.split(",",1024)
-        val shareSeed = ws.metadata.split(",",1024)
-        log.debug(s"shareEncrypted: ${shareEncrypted.map(d => s"'${d}'")}")
-        log.debug(s"shareSeed: ${shareSeed.map(d => s"'${d}'")}")
+        val shareEncrypted = SecretShare.fromList(ws.sk)
+        val shareSeed = SecretShare.fromList(ws.metadata)
+        log.info(s"shareEncrypted: ${shareEncrypted.map(d => s"'${d}'")}")
+        log.info(s"shareSeed: ${shareSeed.map(d => s"'${d}'")}")
         val ee = shareEncrypted.zip(shareSeed).map{ case(share,seed) => {
           cypher.decrypt(share,seed)
         }}
         Try(ee.map(_.get))        
       }
-      sk <- {        
+      sk <- {
+        // for testing, use only m share
         val ss = SecretShare.toShares(shares.toList)
         SSS.getSecret(ss)
       }
       sig <- Eth.signTransaction(
-        sk = Util.hex(sk),
+        sk = new String(sk),
         to = to, 
         value = value, 
         nonce = nonce, 
