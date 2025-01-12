@@ -6,6 +6,7 @@ import io.jvm.uuid._
 
 import io.syspulse.wal3.Wallet
 import io.syspulse.blockchain.Blockchain
+import spray.json.JsObject
 
 final case class Wallets(wallets: Seq[Wallet],total:Option[Long]=None)
 
@@ -22,7 +23,11 @@ final case class WalletSignReq(
   gasTip:String,
   gasLimit:Long,
   value:Option[String] = None,
-  chain:Option[Blockchain] = Some(Blockchain.ANVIL)
+  chain:Option[Blockchain] = Some(Blockchain.ANVIL),
+
+  // signer specific data
+  signerType: Option[String] = Some("eth1"),
+  signerData: Option[JsObject] = None
 )
 
 final case class WalletTxReq(

@@ -6,6 +6,7 @@ import scala.collection.immutable
 import io.jvm.uuid._
 
 import io.syspulse.wal3.WalletSecret
+import spray.json.JsObject
 
 abstract class SignerPayload
 
@@ -29,5 +30,7 @@ trait WalletSigner {
   def random(oid:Option[String]):Try[WalletSecret]
   def create(oid:Option[String],sk:String):Try[WalletSecret]
   def sign(ss:SignerSecret, payload:SignerPayload):Try[String]
+
+  def decodeSignerData(signerType:Option[String],signerData:Option[JsObject]):Option[SignerData] = None
 }
 

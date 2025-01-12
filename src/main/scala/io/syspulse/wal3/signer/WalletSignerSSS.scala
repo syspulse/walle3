@@ -6,6 +6,8 @@ import scala.collection.immutable
 import com.typesafe.scalalogging.Logger
 import io.jvm.uuid._
 
+import spray.json.DefaultJsonProtocol._
+
 import io.syspulse.skel.crypto.Eth
 import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
@@ -16,9 +18,14 @@ import io.syspulse.blockchain.Blockchains
 import io.syspulse.skel.crypto.SSS
 import org.secret_sharing.Share
 import scala.util.Random
+import spray.json.JsObject
 
 // user shares
 case class SignerSSSUserShare(shares:Seq[String]) extends SignerData
+
+object WalletSignerSSSJson {
+  implicit val jf_signer_sss_user_share = jsonFormat1(SignerSSSUserShare)
+}
 
 object SecretShare {
   val log = Logger(s"${this}")
@@ -58,14 +65,24 @@ object SecretShare {
 class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends WalletSigner {
   val log = Logger(s"${this}")
 
+  import WalletSignerSSSJson._
+
   val (m,n) = uri.split(":").toList match {
     case n :: Nil => (n.toInt - 1,n.toInt)
     case m :: n :: Nil => (m.toInt,n.toInt)
     case _ => (3,5)
   }
 
-  // val DEF_TYPE = "sss:ECDSA:secp256k1"
-  def toType:String = s"sss:${m}:${n}:ECDSA:secp256k1"
+  val DEF_TYPE = "sss"
+  val DEF_ALGO = "ECDSA"
+  val DEF_CURVE = "secp256k1" // default
+
+  def toType:String = s"${DEF_TYPE}:${m}:${n}:${DEF_ALGO}:${DEF_CURVE}"
+  def fromType(t:String):(String,Int,Int,String,String) = t.split(":").toList match {
+    case t :: m :: n :: Nil => (t,m.toInt,n.toInt,DEF_ALGO,DEF_CURVE)
+    case DEF_TYPE :: Nil => (DEF_TYPE,2,3,DEF_ALGO,DEF_CURVE)
+    case _ => (DEF_TYPE,2,3,DEF_ALGO,DEF_CURVE)
+  }
 
   def random(oid:Option[String]):Try[WalletSecret] = {
     log.info(s"random: oid=${oid}: ${toType}")
@@ -170,6 +187,20 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
       
       case _ =>
         Failure(new Exception(s"Unsupported payload: ${payload}"))
+    }
+  }
+
+  override def decodeSignerData(signerType:Option[String],signerData:Option[JsObject]):Option[SignerData] = {
+    signerType.map(fromType(_)) match {
+      case Some(("sss",_,_,_,_)) =>
+        signerData match {
+          case Some(data) =>
+            // parse obj
+            Some(data.convertTo[SignerSSSUserShare])
+          case _ =>
+            None
+        }
+      case _ => None
     }
   }
 }

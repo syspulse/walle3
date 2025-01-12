@@ -184,6 +184,7 @@ object WalletRegistry {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
             //signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
+            val signerData = signer.decodeSignerData(req.signerType,req.signerData)
             val ss = SignerSecret(ws1,None)
             signer.sign(ss, SignerTxPayload(req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId))
           }
