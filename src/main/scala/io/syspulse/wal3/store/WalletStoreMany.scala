@@ -10,6 +10,7 @@ import io.jvm.uuid._
 
 import io.syspulse.wal3.{Wallet}
 import io.syspulse.wal3.WalletSecret
+import io.syspulse.wal3.signer.SignerSecret
 
 class WalletStoreMany(wss:Seq[WalletStore] = Seq(new WalletStoreMem())) extends WalletStore {
   val log = Logger(s"${this}")
@@ -47,17 +48,24 @@ class WalletStoreMany(wss:Seq[WalletStore] = Seq(new WalletStoreMem())) extends 
         Seq.empty
     }
 
-  def +++(w:WalletSecret):Try[WalletSecret] = +++(Some(DEFAULT_STORE),w)
-  override def +++(typ:Option[String],w:WalletSecret):Try[WalletSecret] =
+  def +++(s:SignerSecret):Try[SignerSecret] = +++(Some(DEFAULT_STORE),s)
+  override def +++(typ:Option[String],s:SignerSecret):Try[SignerSecret] =
     stores.get(typ) match {
-      case Some(ws) => ws.+++(w)
+      case Some(store) => store.+++(s)
       case None => 
         log.error(s"not found: ${typ}")
         Failure(new Exception(s"store not found: ${typ}"))
     }
 
   def +(w:WalletSecret):Try[WalletSecret] = this.+(Some(DEFAULT_STORE),w)
-  override def +(typ:Option[String],w:WalletSecret):Try[WalletSecret] = +++(typ,w).map(_ => w)
+
+  override def +(typ:Option[String],w:WalletSecret):Try[WalletSecret] =
+    stores.get(typ) match {
+      case Some(store) => store.+(w)
+      case None => 
+        log.error(s"not found: ${typ}")
+        Failure(new Exception(s"store not found: ${typ}"))
+    }    
 
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = del(Some(DEFAULT_STORE),addr,oid)
   override def del(typ:Option[String],addr:String,oid:Option[String]):Try[WalletSecret] =

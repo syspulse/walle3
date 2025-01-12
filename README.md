@@ -172,3 +172,24 @@ Run:
 ```
 ./run-wal3.sh --permissions=strict --service.role='groups[].service-account' --admin.role='groups[].admin-account'
 ```
+
+
+----
+
+## SSS Signer
+
+Signer uri: `sss://m:n` (m - number of shares to recover, n - total number of shares)
+
+By default SSS Signer stores master shares (first `k` shares) to the WalletSecret datastore. `k` number is defined in the datastore `sss://k` parameter.
+
+Run server with SSS Signer with 2:2 share (all share mandatory) and 1 Master share and no encryption of shares
+
+```
+GOD=1 ./run-wal3.sh server --signer=sss://2:2 --cypher=none:// --datastore=sss://1
+```
+
+Sign with user share
+
+```
+SIGNER_TYPE=sss SIGNER_DATA="{\"shares\":[\"`cat SHARE_2`\"]}" ./wal3-sign.sh 0x97b9a0cc17c4ce1415252346c15c99df23beb65f
+```

@@ -58,12 +58,12 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
   
   log.info(s"KMS(${uri}): ${kms}")  
 
-  def random(oid:Option[String]):Try[WalletSecret] = {
+  def random(oid:Option[String]):Try[SignerSecret] = {
     log.info(s"random key: ${oid}")
     create(oid)
   }
 
-  def create(oid:Option[String],sk:String):Try[WalletSecret] = {
+  def create(oid:Option[String],sk:String):Try[SignerSecret] = {
     Failure(new Exception(s"KMS create from SK is not supported: ${oid}"))
   }
 
@@ -86,7 +86,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
     pkBytes
   }
 
-  def create(oid:Option[String]):Try[WalletSecret] = {
+  def create(oid:Option[String]):Try[SignerSecret] = {
     for {
       keyId <- {
         val req = new CreateKeyRequest()
@@ -158,7 +158,7 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
         )
         Success(w1)
       }
-    } yield w1
+    } yield SignerSecret(w1,None)
   }
 
   // def sign(ws:WalletSecret,

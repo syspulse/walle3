@@ -18,7 +18,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
 
   val DEF_TYPE = "eth1:ECDSA:secp256k1"
 
-  def random(oid:Option[String]):Try[WalletSecret] = {
+  def random(oid:Option[String]):Try[SignerSecret] = {
     log.info(s"random: oid=${oid}")
     for {
       kp <- Eth.generateRandom()
@@ -31,10 +31,10 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
         typ = DEF_TYPE,
         metadata = seed
       ))
-     } yield ws
+     } yield SignerSecret(ws)
   }
 
-  def create(oid:Option[String],sk:String):Try[WalletSecret] = {
+  def create(oid:Option[String],sk:String):Try[SignerSecret] = {
     log.info(s"create: oid=${oid}, sk_hash=${Util.sha256(sk)}")
     for {
       kp <- Eth.generate(sk)
@@ -47,7 +47,7 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
         typ = DEF_TYPE,
         metadata = seed
       ))
-     } yield ws
+     } yield SignerSecret(ws)
   }
 
   // def sign(ws:WalletSecret,

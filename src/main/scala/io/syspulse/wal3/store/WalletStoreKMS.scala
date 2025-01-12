@@ -34,8 +34,11 @@ import io.syspulse.skel.util.Util
 import io.syspulse.skel.crypto.Eth
 import io.syspulse.blockchain.Blockchains
 import io.syspulse.wal3.signer.WalletSignerKMS
+import io.syspulse.wal3.signer.SignerSecret
 
-class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag:String = "") extends WalletSignerKMS(blockchains,uri,tag) with WalletStore {
+class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag:String = "") 
+     extends WalletSignerKMS(blockchains,uri,tag) 
+     with WalletStore {
   
   def id:String = "kms"
   
@@ -46,9 +49,9 @@ class WalletStoreKMS(blockchains:Blockchains = Blockchains(),uri:String = "",tag
   def findByOid(oid:String):Seq[WalletSecret] = 
     all(Some(oid)).filter(_.oid == Some(oid)).toSeq
 
-  def +++(w:WalletSecret):Try[WalletSecret] = create(w.oid)
+  def +++(s:SignerSecret):Try[SignerSecret] = create(s.ws.oid).map(_ => s)
 
-  def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)
+  def +(w:WalletSecret):Try[WalletSecret] = create(w.oid).map(_ => w)
 
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = {         
     for {

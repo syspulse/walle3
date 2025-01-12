@@ -170,8 +170,8 @@ object App extends skel.Server {
       case "jdbc" :: typ :: db :: Nil => new WalletStoreDB(c,s"${typ}://${db}")
 
       case "mem" :: _ => new WalletStoreMem()
-      case "sss" :: m :: Nil => new WalletStoreSSS(m.toInt)
-      case "sss" :: Nil => new WalletStoreSSS()
+
+      case "sss" :: uri :: Nil => new WalletStoreSSS(uri)
 
       case "many" :: stores => 
         val wss = config.datastore.stripPrefix("many://").split(",").map(s => parseStore(s))
@@ -211,7 +211,12 @@ object App extends skel.Server {
           case "random" :: Nil => 
             signer.random(None)
         }
+
+      case _ => 
+        Console.err.println(s"Uknown command: '${config.cmd}'")
+        sys.exit(1)
     }
+    
     Console.println(s"r = ${r}")
   }
 }

@@ -8,6 +8,7 @@ import io.jvm.uuid._
 import io.syspulse.skel.store.Store
 import io.syspulse.wal3.{Wallet,WalletSecret}
 import io.syspulse.wal3.signer.WalletSigner
+import io.syspulse.wal3.signer.SignerSecret
 
 trait WalletStore extends Store[WalletSecret,String] {  
   
@@ -17,8 +18,8 @@ trait WalletStore extends Store[WalletSecret,String] {
   
   def +(typ:Option[String],w:WalletSecret):Try[WalletSecret] = this.+(w)
 
-  def +++(typ:Option[String],w:WalletSecret):Try[WalletSecret] = this.+++(w)
-  def +++(w:WalletSecret):Try[WalletSecret]
+  def +++(typ:Option[String],s:SignerSecret):Try[SignerSecret] = this.+++(s)
+  def +++(s:SignerSecret):Try[SignerSecret]
   
   def del(typ:Option[String],addr:String,oid:Option[String]):Try[WalletSecret] = this.del(addr,oid)
   def del(addr:String,oid:Option[String]):Try[WalletSecret]

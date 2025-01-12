@@ -16,6 +16,7 @@ import io.syspulse.skel.config.{Configuration}
 import io.syspulse.skel.store.{Store,StoreDB}
 
 import io.syspulse.wal3.WalletSecret
+import io.syspulse.wal3.signer.SignerSecret
 
 // Postgres does not support table name 'wal3' !
 class WalletStoreDB(configuration:Configuration,dbConfigRef:String) 
@@ -100,7 +101,11 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
   } 
   //val deleteById = (addr:String) => table.filter(_.addr == lift(addr)).delete
 
-  def +++(w:WalletSecret):Try[WalletSecret] = { 
+  def +++(s:SignerSecret):Try[SignerSecret] = { 
+    this.+(s.ws).map(_ => s)
+  }    
+
+  def +(w:WalletSecret):Try[WalletSecret] = {
     log.debug(s"INSERT: ${w}")
     try {
       ctx.run(query[WalletSecret].insertValue(lift(w)));
@@ -110,8 +115,6 @@ class WalletStoreDB(configuration:Configuration,dbConfigRef:String)
       case e:Exception => Failure(new Exception(s"could not insert: ${e}"))
     }
   }
-
-  def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)
   
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = { 
     log.debug(s"DELETE: addr=${addr},oid=${oid}")

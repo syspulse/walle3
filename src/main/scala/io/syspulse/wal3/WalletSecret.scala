@@ -17,8 +17,8 @@ case class WalletSecret(
   typ:String = "ECDSA",
   ts:Long = System.currentTimeMillis(),
 
-  cypher:String = "AES-256",
-  metadata:String = ""          // arbitrary metadata (e.g. used by KMS for datakey)
+  cypher:String = "",
+  metadata:String = ""          // metadata for different signers/cyphers (e.g. used by KMS for datakey or AES seed)
 ) {
   override def toString = s"WalletSecret(${sk.take(4)}*****,${pk},${addr},${oid},${typ},${ts},${cypher},${Util.hex(metadata.getBytes())})"
 }

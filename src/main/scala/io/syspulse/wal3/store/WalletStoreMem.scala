@@ -10,6 +10,7 @@ import io.jvm.uuid._
 
 import io.syspulse.wal3.{Wallet}
 import io.syspulse.wal3.WalletSecret
+import io.syspulse.wal3.signer.SignerSecret
 
 class WalletStoreMem extends WalletStore {
   val log = Logger(s"${this}")
@@ -29,12 +30,14 @@ class WalletStoreMem extends WalletStore {
   def findByOid(oid:String):Seq[WalletSecret] = 
     wallets.values.filter(_.oid == Some(oid)).toSeq
 
-  def +++(w:WalletSecret):Try[WalletSecret] = {     
+  def +++(s:SignerSecret):Try[SignerSecret] = {     
+    this.+(s.ws).map(_ => s)
+  }
+
+  def +(w:WalletSecret):Try[WalletSecret] = {     
     wallets = wallets + (w.addr -> w)    
     Success(w)
   }
-
-  def +(w:WalletSecret):Try[WalletSecret] = +++(w).map(_ => w)    
 
   def del(addr:String,oid:Option[String]):Try[WalletSecret] = {         
     wallets.get(addr) match {

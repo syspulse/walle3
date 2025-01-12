@@ -102,12 +102,14 @@ object WalletRegistry {
       
       case CreateWallet(oid, req, replyTo) =>
         val w = for {
-          ws <- signer.create(oid,req.sk)
-          _ <- store.+++(ws)
+          ss0 <- signer.create(oid,req.sk)
+          ss <- store.+++(ss0)
           w <- {
-            log.info(s"add: ${ws}")
+            val ws = ss.ws
+            log.info(s"add: ${ss}")
 
-            Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid))
+            val signerData = signer.encodeSignerData(ss)
+            Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid,signerData))
           }
         } yield w        
         
@@ -124,11 +126,15 @@ object WalletRegistry {
       case RandomWallet(oid, req, replyTo) =>
         log.info(s"random: oid=${oid}, req=${req}")
         val w = for {
-          ws <- signer.random(oid)
-          _ <- store.+++(ws)
+          ss0 <- signer.random(oid)
+          ss <- store.+++(ss0)
           w <- {
-            log.info(s"add: ${ws}")
-            Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid))
+            val ws = ss.ws
+            log.info(s"add: ${ss}")
+
+            val signerData = signer.encodeSignerData(ss)
+            
+            Success(Wallet(ws.addr, ws.typ,ws.ts,ws.oid,signerData))
           }
         } yield w        
         
@@ -184,8 +190,8 @@ object WalletRegistry {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
             //signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
-            val signerData = signer.decodeSignerData(req.signerType,req.signerData)
-            val ss = SignerSecret(ws1,None)
+            val signerData = signer.decodeSignerData(req.signerType,req.signerData)            
+            val ss = SignerSecret(ws1,signerData)
             signer.sign(ss, SignerTxPayload(req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId))
           }
         } yield sig

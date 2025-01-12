@@ -16,6 +16,7 @@ import io.syspulse.skel.store.StoreDir
 
 import io.syspulse.wal3.WalletSecret
 import io.syspulse.wal3.server.WalletJson._
+import io.syspulse.wal3.signer.SignerSecret
 
 // Preload from file during start
 class WalletStoreDir(dir:String = "store/") extends StoreDir[WalletSecret,String](dir) with WalletStore {
@@ -29,10 +30,10 @@ class WalletStoreDir(dir:String = "store/") extends StoreDir[WalletSecret,String
   
   def size:Long = store.size
   
-  override def +++(w:WalletSecret):Try[WalletSecret] = for {
-    _ <- store.+(w)
-    _ <- super.+(w)
-  } yield w
+  override def +++(s:SignerSecret):Try[SignerSecret] = for {
+    _ <- store.+(s.ws)
+    _ <- super.+(s.ws)
+  } yield s
 
   override def +(w:WalletSecret):Try[WalletSecret] = store.+(w).map(_ => w)
 

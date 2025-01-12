@@ -27,16 +27,16 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
       val s = new WalletStoreKMS(uri = testKms)
       val oid = UUID.random
       val w0 = WalletSecret("","","",Some(oid.toString))
-      val w1 = s.+++(w0)
+      val w1 = s.+++(SignerSecret(w0))
 
       w1 shouldBe a [Success[_]]      
       
-      val s2 = s.del(w1.get.addr)
+      val s2 = s.del(w1.get.ws.addr)
       //info(s"w2 = ${s2}")
 
       s2 shouldBe a [Success[_]]
       
-      val w2 = s.?(w1.get.addr)
+      val w2 = s.?(w1.get.ws.addr)
 
       w2 shouldBe a [Failure[_]]
     }
@@ -46,21 +46,21 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
       val oid = UUID.random //UUID("93bf5f75-d412-483b-b51d-2073dd81635c")
       //val a0 = Util.hex(Random.nextBytes(20)) //"0x388C818CA8B9251b393131C08a736A67ccB19297"
       val w0 = WalletSecret("","","",Some(oid.toString))
-      val w1 = s.+++(w0)
+      val w1 = s.+++(SignerSecret(w0))
 
       w1 shouldBe a [Success[_]]      
 
       // info(s"w1 = ${w1}")
 
-      val w2 = s.?(w1.get.addr)
+      val w2 = s.?(w1.get.ws.addr)
       //info(s"w2 = ${w2}")
 
       w2 shouldBe a [Success[_]]
-      w1.get.addr should === (w2.get.addr)
-      w1.get.pk should === (w2.get.pk)
-      w1.get.oid should === (w2.get.oid)
+      w1.get.ws.addr should === (w2.get.addr)
+      w1.get.ws.pk should === (w2.get.pk)
+      w1.get.ws.oid should === (w2.get.oid)
 
-      w1.get.metadata should === (w2.get.metadata)
+      w1.get.ws.metadata should === (w2.get.metadata)
       w2.get.cypher should === ("KMS")
     }
 
@@ -78,15 +78,15 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
       val s = new WalletStoreKMS(uri = testKms)
       val oid = UUID.random      
       val w0 = WalletSecret("","","",Some(oid.toString))
-      val w1 = s.+++(w0)
+      val w1 = s.+++(SignerSecret(w0))
 
       w1 shouldBe a [Success[_]]      
 
-      val w2 = s.???(w1.get.addr,Some(oid.toString))
+      val w2 = s.???(w1.get.ws.addr,Some(oid.toString))
       //info(s"w2 = ${w2}")
       w2 shouldBe a [Success[_]]
       
-      val w3 = s.???(w1.get.addr,Some(UUID.random.toString))
+      val w3 = s.???(w1.get.ws.addr,Some(UUID.random.toString))
       w3 shouldBe a [Failure[_]]    
     }
 
@@ -101,8 +101,8 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
       val s = new WalletStoreKMS(uri=testKms)
       
       val oid = UUID.random //UUID("93bf5f75-d412-483b-b51d-2073dd81635c")
-      s.+++(WalletSecret("","","",Some(oid.toString)))
-      s.+++(WalletSecret("","","",Some(oid.toString)))
+      s.+++(SignerSecret(WalletSecret("","","",Some(oid.toString))))
+      s.+++(SignerSecret(WalletSecret("","","",Some(oid.toString))))
 
       val w1 = s.all(Some(oid.toString))
 
@@ -124,13 +124,13 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
       val s = new WalletStoreKMS(uri=testKms)
       val oid = UUID.random
       val w0 = WalletSecret("","","",Some(oid.toString))
-      val w1 = s.+++(w0)
+      val w1 = s.+++(SignerSecret(w0))
 
       w1 shouldBe a [Success[_]]
       
       for( i <- 0 to 5) {
                 
-        val sig1 = s.sign(SignerSecret(w1.get),SignerTxPayload("0x1",0,"",BigInt(20),BigInt(1),20000,BigInt(0),11155111))
+        val sig1 = s.sign(SignerSecret(w1.get.ws),SignerTxPayload("0x1",0,"",BigInt(20),BigInt(1),20000,BigInt(0),11155111))
         info(s"sig1 = ${sig1}")
 
         sig1 shouldBe a [Success[_]]

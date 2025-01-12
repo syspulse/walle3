@@ -6,7 +6,7 @@ import scala.collection.immutable
 import com.typesafe.scalalogging.Logger
 import io.jvm.uuid._
 
-import spray.json.DefaultJsonProtocol._
+import spray.json._
 
 import io.syspulse.skel.crypto.Eth
 import io.syspulse.wal3.WalletSecret
@@ -23,7 +23,7 @@ import spray.json.JsObject
 // user shares
 case class SignerSSSUserShare(shares:Seq[String]) extends SignerData
 
-object WalletSignerSSSJson {
+object WalletSignerSSSJson extends DefaultJsonProtocol {
   implicit val jf_signer_sss_user_share = jsonFormat1(SignerSSSUserShare)
 }
 
@@ -79,12 +79,13 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
 
   def toType:String = s"${DEF_TYPE}:${m}:${n}:${DEF_ALGO}:${DEF_CURVE}"
   def fromType(t:String):(String,Int,Int,String,String) = t.split(":").toList match {
-    case t :: m :: n :: Nil => (t,m.toInt,n.toInt,DEF_ALGO,DEF_CURVE)
+    case DEF_TYPE :: m :: n :: Nil => (t,m.toInt,n.toInt,DEF_ALGO,DEF_CURVE)
     case DEF_TYPE :: Nil => (DEF_TYPE,2,3,DEF_ALGO,DEF_CURVE)
-    case _ => (DEF_TYPE,2,3,DEF_ALGO,DEF_CURVE)
+    case "" :: Nil => (DEF_TYPE,2,3,DEF_ALGO,DEF_CURVE)
+    case t :: Nil => (t,0,0,DEF_ALGO,DEF_CURVE)    
   }
 
-  def random(oid:Option[String]):Try[WalletSecret] = {
+  def random(oid:Option[String]):Try[SignerSecret] = {
     log.info(s"random: oid=${oid}: ${toType}")
     
     for {
@@ -95,8 +96,12 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
       shares <- SSS.createShares(Util.hex(k.sk),m,n)
 
       encrypted <- {
-        log.info(s"shares=${shares}")
-        val ss = shares.map(s => cypher.encrypt(SecretShare.fromShare(s)))        
+        log.debug(s"shares=${shares}")
+        
+        val sharesEncoded = shares.map(s => SecretShare.fromShare(s))
+        log.info(s"shares=${sharesEncoded}")
+
+        val ss = sharesEncoded.map(s => cypher.encrypt(s))        
         Try(ss.map(_.get))
       }
       ws <- {
@@ -111,10 +116,10 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
           metadata = encrypted.map(_._2).mkString(",")
         ))
       }
-     } yield ws
+     } yield SignerSecret(ws,None)
   }
   
-  def create(oid:Option[String],sk:String):Try[WalletSecret] = {
+  def create(oid:Option[String],sk:String):Try[SignerSecret] = {
     log.info(s"create: oid=${oid}, sk=${sk}")    
     for {
       
@@ -124,7 +129,11 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
       
       encrypted <- {
         log.debug(s"shares=${shares}")
-        val ss = shares.map(s => cypher.encrypt(SecretShare.fromShare(s)))
+        
+        val sharesEncoded = shares.map(s => SecretShare.fromShare(s))
+        log.info(s"shares=${sharesEncoded}")
+
+        val ss = sharesEncoded.map(s => cypher.encrypt(s))        
         Try(ss.map(_.get))
       }
       ws <- {
@@ -139,7 +148,7 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
           metadata = encrypted.map(_._2).mkString(",")
         ))
       }
-    } yield ws
+    } yield SignerSecret(ws,None)
   }
 
   def sign(ss:SignerSecret, payload:SignerPayload):Try[String] = {
@@ -154,7 +163,7 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
             Seq()
         }
 
-        log.info(s"sign: ws=${ws}: userShares=${userShares}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
+        log.info(s"sign: userShares=${userShares}, ws=${ws}, chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
         
         for {
           //web3 <- blockchains.getWeb3(chainId)
@@ -198,9 +207,24 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
             // parse obj
             Some(data.convertTo[SignerSSSUserShare])
           case _ =>
+            log.warn(s"failed to parse data: ${signerType.get}")
             None
         }
-      case _ => None
+      case _ => 
+        log.warn(s"unsupported type: '${signerType.getOrElse("")}'")
+        None
+    }
+  }
+
+  override def encodeSignerData(ss:SignerSecret):Option[JsObject] = {
+    ss.data match {
+      case Some(SignerSSSUserShare(shares)) =>
+        Some(
+          SignerSSSUserShare(shares).toJson.asJsObject
+        )
+      case _ =>
+        log.warn(s"unknown signerData: ${ss.data}")
+        None
     }
   }
 }
