@@ -17,6 +17,9 @@ import io.syspulse.skel.crypto.SSS
 import org.secret_sharing.Share
 import scala.util.Random
 
+// user shares
+case class SignerSSSUserShare(shares:Seq[String]) extends SignerData
+
 object SecretShare {
   val log = Logger(s"${this}")
 
@@ -36,7 +39,7 @@ object SecretShare {
     }
   }
   def toShares(shares:String):List[Share] = fromList(shares).flatMap(toShare(_))
-  def toShares(shares:List[String]):List[Share] = shares.flatMap(toShare(_))
+  def toShares(shares:Seq[String]):List[Share] = shares.toList.flatMap(toShare(_))
 
   // def randomShares(num:Int = 1):List[String] = {
   //   val ss = for(i <- 0 until num) yield 
@@ -122,42 +125,53 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
     } yield ws
   }
 
-  def sign(ws:WalletSecret,
-           to:String,nonce:Long,data:String,
-           gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
-           value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
+  def sign(ss:SignerSecret, payload:SignerPayload):Try[String] = {
+    payload match {
+      case SignerTxPayload(to,nonce,data,gasPrice,gasTip,gasLimit,value,chainId) =>
+        val ws = ss.ws
+        val userShares = ss.data match {
+          case Some(SignerSSSUserShare(userShares)) =>
+            // decode user shares
+            userShares
+          case _ =>
+            Seq()
+        }
 
-    log.info(s"sign: ws=${ws}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
-    
-    for {
-      web3 <- blockchains.getWeb3(chainId)
-      shares <- {
-        val shareEncrypted = SecretShare.fromList(ws.sk)
-        val shareSeed = SecretShare.fromList(ws.metadata)
-        log.info(s"shareEncrypted: ${shareEncrypted.map(d => s"'${d}'")}")
-        log.info(s"shareSeed: ${shareSeed.map(d => s"'${d}'")}")
-        val ee = shareEncrypted.zip(shareSeed).map{ case(share,seed) => {
-          cypher.decrypt(share,seed)
-        }}
-        Try(ee.map(_.get))        
-      }
-      sk <- {
-        // for testing, use only m share
-        val ss = SecretShare.toShares(shares.toList)
-        SSS.getSecret(ss)
-      }
-      sig <- Eth.signTransaction(
-        sk = new String(sk),
-        to = to, 
-        value = value, 
-        nonce = nonce, 
-        gasPrice = gasPrice, 
-        gasTip = gasTip, 
-        gasLimit = gasLimit,
-        data = if(data.isBlank) None else Some(data),
-        chainId = chainId
-      )
-    } yield sig    
+        log.info(s"sign: ws=${ws}: userShares=${userShares}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
+        
+        for {
+          //web3 <- blockchains.getWeb3(chainId)
+          shares <- {
+            val shareEncrypted = SecretShare.fromList(ws.sk)
+            val shareSeed = SecretShare.fromList(ws.metadata)
+            log.info(s"shareEncrypted: ${shareEncrypted.map(d => s"'${d}'")}")
+            log.info(s"shareSeed: ${shareSeed.map(d => s"'${d}'")}")
+            val ee = shareEncrypted.zip(shareSeed).map{ case(share,seed) => {
+              cypher.decrypt(share,seed)
+            }}
+            Try(ee.map(_.get))
+          }
+          sk <- {            
+            val ss = SecretShare.toShares(shares ++ userShares)            
+            SSS.getSecret(ss)
+          }
+          sig <- Eth.signTransaction(
+            sk = new String(sk),
+            to = to, 
+            value = value, 
+            nonce = nonce, 
+            gasPrice = gasPrice, 
+            gasTip = gasTip, 
+            gasLimit = gasLimit,
+            data = if(data.isBlank) None else Some(data),
+            chainId = chainId
+          )
+        } yield sig
+      
+      case _ =>
+        Failure(new Exception(s"Unsupported payload: ${payload}"))
+    }
   }
 }
+
 

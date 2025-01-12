@@ -50,27 +50,34 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
      } yield ws
   }
 
-  def sign(ws:WalletSecret,
-           to:String,nonce:Long,data:String,
-           gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
-           value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
-    log.info(s"sign: ws=${ws}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
-    
-    for {
-      web3 <- blockchains.getWeb3(chainId)
-      sk <- cypher.decrypt(ws.sk,ws.metadata)
-      sig <- Eth.signTransaction(
-        sk = sk,
-        to = to, 
-        value = value, 
-        nonce = nonce, 
-        gasPrice = gasPrice, 
-        gasTip = gasTip, 
-        gasLimit = gasLimit,
-        data = if(data.isBlank) None else Some(data),
-        chainId = chainId
-      )
-    } yield sig    
+  // def sign(ws:WalletSecret,
+  //          to:String,nonce:Long,data:String,
+  //          gasPrice:BigInt,gasTip:BigInt,gasLimit:Long,
+  //          value:BigInt = 0,chainId:Long = 11155111):Try[String] = {
+  def sign(ss:SignerSecret, payload:SignerPayload):Try[String] = {
+    payload match {
+      case SignerTxPayload(to,nonce,data,gasPrice,gasTip,gasLimit,value,chainId) =>
+        val ws = ss.ws
+        log.info(s"sign: ws=${ws}: chain=${chainId}: to=${to}, nonce=${nonce}, gas=[base:${gasPrice}(${gasPrice.toDouble / 1000000000}gwei),tip:${gasTip}(${gasTip.toDouble / 1000000000}gwei),limit:${gasLimit}], value=${value}, data=${data}")
+        
+        for {
+          //web3 <- blockchains.getWeb3(chainId)
+          sk <- cypher.decrypt(ws.sk,ws.metadata)
+          sig <- Eth.signTransaction(
+            sk = sk,
+            to = to, 
+            value = value, 
+            nonce = nonce, 
+            gasPrice = gasPrice, 
+            gasTip = gasTip, 
+            gasLimit = gasLimit,
+            data = if(data.isBlank) None else Some(data),
+            chainId = chainId
+          )
+        } yield sig 
+      case _ =>
+        Failure(new Exception(s"Unsupported payload: ${payload}"))
+    }
   }
 }
 

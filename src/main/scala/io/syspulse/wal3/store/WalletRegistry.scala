@@ -27,6 +27,8 @@ import io.syspulse.blockchain.Blockchain
 import io.syspulse.blockchain.BlockchainRpc
 import akka.actor.typed.ActorSystem
 import java.util.concurrent.TimeoutException
+import io.syspulse.wal3.signer.SignerSecret
+import io.syspulse.wal3.signer.SignerTxPayload
 
 object WalletRegistry {
   val log = Logger(s"${this}")
@@ -181,7 +183,9 @@ object WalletRegistry {
           sig <- {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
-            signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
+            //signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
+            val ss = SignerSecret(ws1,None)
+            signer.sign(ss, SignerTxPayload(req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId))
           }
         } yield sig
         
@@ -222,7 +226,9 @@ object WalletRegistry {
           sig <- {
             log.info(s"sign: ${ws1}: ${req}")
             // signing by admin on behalf of another address/wallet is possible
-            signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
+            //signer.sign(ws1, req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId)
+            val ss = SignerSecret(ws1,None)
+            signer.sign(ss, SignerTxPayload(req.to, nonceTx, req.data, gasPrice, gasTip, req.gasLimit, value, chainId))
           }
 
           hash <- {

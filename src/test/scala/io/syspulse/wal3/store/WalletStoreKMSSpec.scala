@@ -13,6 +13,8 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.crypto.Eth
 import scala.util.Random
 import io.syspulse.skel.util.Util
+import io.syspulse.wal3.signer.SignerTxPayload
+import io.syspulse.wal3.signer.SignerSecret
 // import io.syspulse.skel.util.Util
 
 class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
@@ -128,7 +130,7 @@ class WalletStoreKMSSpec extends AnyWordSpec with Matchers {
       
       for( i <- 0 to 5) {
                 
-        val sig1 = s.sign(w1.get,"0x1",0,"",BigInt(20),BigInt(1),20000,BigInt(0),chainId=11155111)
+        val sig1 = s.sign(SignerSecret(w1.get),SignerTxPayload("0x1",0,"",BigInt(20),BigInt(1),20000,BigInt(0),11155111))
         info(s"sig1 = ${sig1}")
 
         sig1 shouldBe a [Success[_]]
