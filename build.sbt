@@ -270,20 +270,24 @@ val sharedConfigAssemblySpark = Seq(
   assembly / test := {}
 )
 
-def appDockerConfig(appName:String,appMainClass:String) = 
+def appDockerConfig(appName:String,appMainClass:String,appConfigs:Seq[String]=Seq.empty) = {
   Seq(
     name := appName,
-
+      
     run / mainClass := Some(appMainClass),
     assembly / mainClass := Some(appMainClass),
     Compile / mainClass := Some(appMainClass), // <-- This is very important for DockerPlugin generated stage1 script!
-    assembly / assemblyJarName := jarPrefix + appName + "-" + "assembly" + "-"+  appVersion + ".jar",
-
+    assembly / assemblyJarName := jarPrefix + appName + "-" + "assembly" + "-"+  skelVersion + ".jar",
+    
+    Universal / mappings ++= {
+      appConfigs.map(c => (file(baseDirectory.value.getAbsolutePath+"/conf/"+c), "conf/"+c))
+    },
     Universal / mappings += file(baseDirectory.value.getAbsolutePath+"/conf/application.conf") -> "conf/application.conf",
     Universal / mappings += file(baseDirectory.value.getAbsolutePath+"/conf/logback.xml") -> "conf/logback.xml",
     bashScriptExtraDefines += s"""addJava "-Dconfig.file=${appDockerRoot}/conf/application.conf"""",
-    bashScriptExtraDefines += s"""addJava "-Dlogback.configurationFile=${appDockerRoot}/conf/logback.xml"""",   
-  )
+    bashScriptExtraDefines += s"""addJava "-Dlogback.configurationFile=${appDockerRoot}/conf/logback.xml"""",
+  ) 
+} 
 
 def appAssemblyConfig(appName:String,appMainClass:String) = 
   Seq(
@@ -307,7 +311,7 @@ lazy val walle3 = (project in file("."))
     sharedConfigDocker,
     dockerBuildxSettings,
 
-    appDockerConfig("walle3","io.syspulse.wal3.App"),
+    appDockerConfig("walle3","io.syspulse.wal3.App",Seq("application-dev.conf")),
 
     libraryDependencies ++= libSkel ++ Seq(  
       libAWSJavaKMS,

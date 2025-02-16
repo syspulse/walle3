@@ -81,7 +81,10 @@ object App extends skel.Server {
         ArgCmd("server","Server"),
         ArgCmd("key","Keys management"),
         ArgParam("<params>",""),
-        ArgLogging()
+        
+        ArgLogging(),
+        ArgConfig()
+
       ).withExit(1)
     )).withLogging()
 
