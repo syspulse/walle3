@@ -2,7 +2,9 @@ import sbt._
 
 object Dependencies {
 
-    lazy val scala = "2.13.9"
+    // lazy val scala = "2.13.9"
+    lazy val scala = "2.13.15"
+
     // Versions
     lazy val versionScalaLogging = "3.9.2"
     lazy val akkaVersion    = "2.6.20"
@@ -25,8 +27,8 @@ object Dependencies {
     lazy val janinoVersion = "3.0.16" //"3.1.6" //"3.0.16"
     lazy val elastic4sVersion = "7.17.3"
     
-    lazy val skelVersion = "0.0.10"
-    lazy val appVersion = "0.0.14"
+    lazy val skelVersion = "0.13.0"
+    lazy val appVersion = "0.13.0"
 
     lazy val jarPrefix = "server-"
     

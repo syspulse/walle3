@@ -112,7 +112,9 @@ val sharedConfig = Seq(
     version         := appVersion,
 
     scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-language:existentials", "-language:implicitConversions", "-language:higherKinds", "-language:reflectiveCalls", "-language:postfixOps"),
-    javacOptions ++= Seq("-target", "1.8", "-source", "1.8"),
+    // javacOptions ++= Seq("-target", "1.8", "-source", "1.8"),
+    javacOptions ++= Seq("-target", "11", "-source", "11"),
+    scalacOptions += "-release:11",
     
     crossVersion := CrossVersion.binary,
     resolvers ++= Seq(

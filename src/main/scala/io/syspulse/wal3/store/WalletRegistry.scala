@@ -298,7 +298,9 @@ object WalletRegistry {
                 })
               
               val web3s = bb.flatMap(b => {
-                blockchains.getWeb3(b.id).toOption match {
+                // TODO: only EVM
+                val chainId = b.id.toLong
+                blockchains.getWeb3(chainId).toOption match {
                   case Some(web3) => Some((b,web3))
                   case _ => 
                     log.warn(s"could not get Web3: ${addr}: ${b}")
@@ -355,8 +357,10 @@ object WalletRegistry {
                     blockchains.getByName(b.name)
                 })
               
-              val web3s = bb.flatMap(b => {
-                blockchains.getWeb3(b.id).toOption match {
+              val web3s = bb.flatMap(b => {                
+                // TODO: only EVM
+                val chainId = b.id.toLong
+                blockchains.getWeb3(chainId).toOption match {
                   case Some(web3) => Some((b,web3))
                   case _ => 
                     log.warn(s"could not get Web3: ${addr}: ${b}")
