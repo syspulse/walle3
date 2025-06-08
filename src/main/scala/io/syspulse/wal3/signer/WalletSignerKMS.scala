@@ -42,7 +42,7 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 
 import io.syspulse.wal3.cypher.Cypher
-import io.syspulse.blockchain.Blockchains
+import io.syspulse.skel.blockchain.Blockchains
 
 import io.syspulse.skel.uri.KmsURI
 import io.syspulse.skel.crypto.kms.KmsClient
@@ -347,6 +347,10 @@ abstract class WalletSignerKMS(blockchains:Blockchains,uri:String = "",tag:Strin
           None
       }
     })
+  }
+
+  def sign712(ss:SignerSecret, message:String):Try[String] = {
+    Failure(new Exception(s"KMS sign712 is not supported: ${ss}"))
   }
 }
 

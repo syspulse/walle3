@@ -18,4 +18,17 @@ else
 fi
 
 >&2 echo $DATA_JSON
-curl -S -s -D /dev/stderr -X POST --data "$DATA_JSON" -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/owner/${OID}
+r=`curl -S -s -D /dev/stderr -X POST --data "$DATA_JSON" -H 'Content-Type: application/json' -H "Authorization: Bearer $ACCESS_TOKEN" $SERVICE_URI/owner/${OID}`
+
+echo $r
+
+W1=`echo $r | jq -r '.addr'`
+
+>&2 echo "WALLET=$W1"
+
+echo $W1 >/tmp/W1.txt
+
+
+
+
+

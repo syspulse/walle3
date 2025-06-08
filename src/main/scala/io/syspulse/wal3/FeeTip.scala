@@ -10,7 +10,7 @@ import io.syspulse.skel.util.Util
 
 import org.web3j.protocol.Web3j
 import io.syspulse.skel.crypto.Eth
-import io.syspulse.blockchain.Blockchain
+import io.syspulse.skel.blockchain.Blockchain
 
 case class FeeTip(chain:String,tip:String) 
 

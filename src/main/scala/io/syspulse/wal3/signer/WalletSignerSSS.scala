@@ -1,5 +1,7 @@
 package io.syspulse.wal3.signer
 
+import scala.util.Random
+
 import scala.util.{Try,Success,Failure}
 import scala.concurrent.Future
 import scala.collection.immutable
@@ -7,18 +9,18 @@ import com.typesafe.scalalogging.Logger
 import io.jvm.uuid._
 
 import spray.json._
+import spray.json.JsObject
+
+import org.web3j.protocol.core.methods.response.EthSign
 
 import io.syspulse.skel.crypto.Eth
 import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
-import org.web3j.protocol.core.methods.response.EthSign
 import io.syspulse.wal3.cypher.Cypher
-import io.syspulse.blockchain.Blockchains
+import io.syspulse.skel.blockchain.Blockchains
 
 import io.syspulse.skel.crypto.SSS
 import org.secret_sharing.Share
-import scala.util.Random
-import spray.json.JsObject
 
 // user shares
 case class SignerSSSUserShare(shares:Seq[String]) extends SignerData
@@ -226,6 +228,10 @@ class WalletSignerSSS(cypher:Cypher,uri:String,blockchains:Blockchains) extends 
         log.warn(s"unknown signerData: ${ss.data}")
         None
     }
+  }
+
+  def sign712(ss:SignerSecret, message:String):Try[String] = {
+    Failure(new Exception(s"KMS sign712 is not supported: ${ss}"))
   }
 }
 

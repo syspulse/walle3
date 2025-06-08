@@ -10,6 +10,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.FileIO
 
+import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -39,7 +40,6 @@ import io.swagger.v3.oas.annotations.parameters.RequestBody
 import jakarta.ws.rs.{Consumes, POST, PUT, GET, DELETE, Path, Produces}
 import jakarta.ws.rs.core.MediaType
 
-
 import io.prometheus.client.CollectorRegistry
 import io.prometheus.client.Counter
 
@@ -47,7 +47,9 @@ import io.syspulse.skel.service.Routeable
 import io.syspulse.skel.service.CommonRoutes
 
 import io.syspulse.skel.Command
-
+import io.syspulse.skel.auth.permissions.rbac
+import io.syspulse.skel.util.Util
+import io.syspulse.skel.blockchain.Blockchain
 import io.syspulse.skel.auth._
 import io.syspulse.skel.auth.permissions.Permissions
 import io.syspulse.skel.auth.RouteAuthorizers
@@ -57,10 +59,7 @@ import io.syspulse.wal3.store.WalletRegistry
 import io.syspulse.wal3.store.WalletRegistry._
 import io.syspulse.wal3.server._
 import io.syspulse.skel.service.telemetry.TelemetryRegistry
-import scala.annotation.tailrec
-import io.syspulse.skel.auth.permissions.rbac
-import io.syspulse.skel.util.Util
-import io.syspulse.blockchain.Blockchain
+
 
 object WalletRoutes {
   def getOwner(authn:Authenticated)(implicit config:Config):Option[String] = {
@@ -142,7 +141,7 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def txStatus(txHash:String, oid:Option[String], req: TxStatusReq): Future[Try[TxStatus]] = registry.ask(TxStatusAsk(txHash,oid,req, _))
   def txCost(addr:String, oid:Option[String], req: TxCostReq): Future[Try[TxCost]] = registry.ask(TxCostAsk(addr,oid,req, _))
   def blockchainPrice(req: BlockchainReq): Future[Try[GasPrice]] = registry.ask(GasPriceAsk(req, _))
-
+  def signWallet712(addr:String, oid:Option[String], req: WalletSign712Req): Future[Try[WalletSig]] = registry.ask(SignWallet712(addr,oid,req, _))
   def callWallet(addr:String, oid:Option[String], req: WalletCallReq): Future[Try[WalletCall]] = registry.ask(CallWallet(addr,oid,req, _))
 
   @GET @Path("/owner/{oid}/{addr}") @Produces(Array(MediaType.APPLICATION_JSON))
@@ -334,6 +333,24 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
   def geBlockchainPriceRoute(blockchain:String) = get {    
     complete(blockchainPrice(BlockchainReq(chain = Blockchain.resolve(blockchain))))
   }
+
+  @POST @Path("/owner/{oid}/{addr}/sign712") @Consumes(Array(MediaType.APPLICATION_JSON))
+  @Produces(Array(MediaType.APPLICATION_JSON))
+  @Operation(tags = Array("wallet"),summary = "Sign EIP-712 message",
+    parameters = Array(
+      new Parameter(name = "oid", in = ParameterIn.PATH, description = "Wallet owner"),
+      new Parameter(name = "addr", in = ParameterIn.PATH, description = "Wallet address")),
+    requestBody = new RequestBody(content = Array(new Content(schema = new Schema(implementation = classOf[WalletSign712Req])))),
+    responses = Array(new ApiResponse(responseCode = "200", description = "Signature",content = Array(new Content(schema = new Schema(implementation = classOf[WalletSig])))))
+  )
+  def signWallet712Route(addr:String,oid:Option[String]) = post {
+    entity(as[WalletSign712Req]) { req =>
+      onSuccess(signWallet712(addr,oid.orElse(req.oid),req)) { r =>
+        metricSignCount.inc()
+        complete(r)
+      }
+    }
+  }
   
 // =======================================================================================================================================================
   val corsAllow = CorsSettings(system.classicSystem)
@@ -388,6 +405,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                   signWalletRoute(addr,None)
                 else
                   signWalletRoute(addr,authn.getUser.map(_.toString))
+              )
+            }
+          } ~
+          pathPrefix("sign712") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  signWallet712Route(addr,None)
+                else
+                  signWallet712Route(addr,authn.getUser.map(_.toString))
               )
             }
           } ~
@@ -462,6 +489,16 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
                   signWalletRoute(addr,None)
                 else
                   signWalletRoute(addr,WalletRoutes.getOwner(authn))
+              )
+            }
+          } ~
+          pathPrefix("sign712") {
+            pathEndOrSingleSlash { 
+              authenticate()(authn =>
+                if(Permissions.isAdmin(authn) || Permissions.isService(authn)) 
+                  signWallet712Route(addr,None)
+                else
+                  signWallet712Route(addr,WalletRoutes.getOwner(authn))
               )
             }
           } ~
@@ -544,6 +581,13 @@ class WalletRoutes(registry: ActorRef[Command])(implicit context: ActorContext[_
               pathEndOrSingleSlash { 
                 authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
                   signWalletRoute(addr,Some(oid))
+                })
+              }
+            } ~
+            pathPrefix("sign712") {
+              pathEndOrSingleSlash { 
+                authenticate()(authn => authorize(Permissions.isAdmin(authn) || Permissions.isService(authn)) {
+                  signWallet712Route(addr,Some(oid))
                 })
               }
             } ~

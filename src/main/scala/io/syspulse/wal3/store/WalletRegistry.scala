@@ -6,27 +6,25 @@ import scala.collection.immutable
 import com.typesafe.scalalogging.Logger
 import io.jvm.uuid._
 
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import scala.concurrent.Future
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.Await
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.ActorSystem
 
 import io.syspulse.skel.Command
 
 import io.syspulse.skel.crypto.Eth
+import io.syspulse.skel.util.Util
+import io.syspulse.skel.blockchain.{ Blockchains,Blockchain,BlockchainRpc }
 
 import io.syspulse.wal3._
 import io.syspulse.wal3.server._
 import io.syspulse.wal3.signer.WalletSigner
-import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-import java.util.concurrent.TimeUnit
-import scala.concurrent.Await
-import io.syspulse.skel.util.Util
-import io.syspulse.blockchain.Blockchains
-import io.syspulse.blockchain.Blockchain
-import io.syspulse.blockchain.BlockchainRpc
-import akka.actor.typed.ActorSystem
-import java.util.concurrent.TimeoutException
 import io.syspulse.wal3.signer.SignerSecret
 import io.syspulse.wal3.signer.SignerTxPayload
 
@@ -49,6 +47,7 @@ object WalletRegistry {
   final case class TxCostAsk(addr: String, oid:Option[String], req: TxCostReq, replyTo: ActorRef[Try[TxCost]]) extends Command
   final case class GasPriceAsk(req: BlockchainReq, replyTo: ActorRef[Try[GasPrice]]) extends Command
   final case class CallWallet(addr: String, oid:Option[String], req: WalletCallReq, replyTo: ActorRef[Try[WalletCall]]) extends Command
+  final case class SignWallet712(addr: String, oid:Option[String], req: WalletSign712Req, replyTo: ActorRef[Try[WalletSig]]) extends Command
   
   def apply(store: WalletStore,signer:WalletSigner,blockchains:Blockchains,tips:FeeTips)(implicit config:Config): Behavior[io.syspulse.skel.Command] = {
     //registry(store,signer,blockchains)(config)
@@ -277,7 +276,6 @@ object WalletRegistry {
         }
 
         Behaviors.same
-
 
       case BalanceWallet(addr0, oid, req, replyTo) => 
         log.info(s"balance: ${addr0}, oid=${oid}, req=${req}")            
@@ -511,6 +509,50 @@ object WalletRegistry {
         }
 
         Behaviors.same
+
+      case SignWallet712(addr0, oid, req, replyTo) =>
+        log.info(s"sign712: ${addr0}, oid=${oid}, req=${req}")            
+        val addr = addr0.toLowerCase()
+
+        val result:Try[String] = for {
+          ws0 <- store.???(addr,oid)
+          chainId <- Blockchain.resolve(req.chain)
+          
+          b <- if(oid == None) Success(true) else Success(ws0.oid == oid)
+          ws1 <- if(b) Success(ws0) else Failure(new Exception(s"not found: ${addr}"))          
+          
+          sig <- {
+            val ss = SignerSecret(ws1,None)
+            signer.sign712(
+              ss, 
+              if(req.message.isDefined) 
+                req.message.get
+              else 
+                Eth.toEIP712Message(
+                  name = req.name.getOrElse(""),
+                  version = req.version.getOrElse(""),
+                  chainId = chainId,
+                  verifyingContract = req.verifyingContract.getOrElse(""),
+                  salt = req.salt,
+
+                  types = req.types.getOrElse(Map()),
+                  values = req.value.getOrElse(Map()),
+                  primaryType = req.primaryType.getOrElse("")
+                )
+            )
+          }        
+        } yield sig
+
+        result match {
+          case Success(result) =>            
+            replyTo ! Success(WalletSig(addr,result))
+          case Failure(e)=> 
+            log.warn(s"failed to sign712: ${oid},${addr},${req}: ${e.getMessage}",e)
+            replyTo ! Failure(e)
+        }
+
+        Behaviors.same
+
     }
         
   }

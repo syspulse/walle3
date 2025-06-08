@@ -30,6 +30,7 @@ trait WalletSigner {
   def random(oid:Option[String]):Try[SignerSecret]
   def create(oid:Option[String],sk:String):Try[SignerSecret]
   def sign(ss:SignerSecret, payload:SignerPayload):Try[String]
+  def sign712(ss:SignerSecret, message:String):Try[String]
 
   def decodeSignerData(signerType:Option[String],signerData:Option[JsObject]):Option[SignerData] = None
   def encodeSignerData(ss:SignerSecret):Option[JsObject] = None

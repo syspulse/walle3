@@ -3,10 +3,10 @@ package io.syspulse.wal3.server
 import scala.collection.immutable
 
 import io.jvm.uuid._
+import spray.json.JsObject
 
 import io.syspulse.wal3.Wallet
-import io.syspulse.blockchain.Blockchain
-import spray.json.JsObject
+import io.syspulse.skel.blockchain.Blockchain
 
 final case class Wallets(wallets: Seq[Wallet],total:Option[Long]=None)
 
@@ -72,3 +72,22 @@ final case class BlockchainReq(chain:Option[Blockchain])
 final case class GasPrice(gas:BigInt,tok:Option[String]=None,dec:Option[Int]=None)
 
 final case class WalletCall(addr:String,result:String)
+
+final case class WalletSign712Req(
+  oid:Option[String],
+  chain:Option[Blockchain] = Some(Blockchain.ANVIL),
+  
+  // if message is provided, then it is full json message
+  message:Option[String] = None,
+  
+  // if message is not provided, then it is a map of domain, types, value, and primaryType
+  name: Option[String] = None,
+  version: Option[String] = None,
+  chainId: Option[Long] = None,
+  verifyingContract: Option[String] = None,
+  salt: Option[String] = None,
+
+  types: Option[Map[String, List[Map[String, String]]]] = None,
+  value: Option[Map[String, Any]] = None,
+  primaryType: Option[String] = None,
+)

@@ -11,7 +11,7 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 import org.web3j.protocol.core.methods.response.EthSign
 import io.syspulse.wal3.cypher.Cypher
-import io.syspulse.blockchain.Blockchains
+import io.syspulse.skel.blockchain.Blockchains
 
 class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSigner {
   val log = Logger(s"${this}")
@@ -78,6 +78,19 @@ class WalletSignerEth1(cypher:Cypher,blockchains:Blockchains) extends WalletSign
       case _ =>
         Failure(new Exception(s"Unsupported payload: ${payload}"))
     }
+  }
+
+  def sign712(ss:SignerSecret, message:String):Try[String] = {
+    val ws = ss.ws
+    for {
+      sk <- cypher.decrypt(ws.sk,ws.metadata)
+      sig <- Try(
+        Eth.signEIP712(
+          message = message,
+          sk = sk          
+        )
+      )
+    } yield sig 
   }
 }
 

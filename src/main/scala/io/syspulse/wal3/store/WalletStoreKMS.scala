@@ -32,7 +32,7 @@ import io.syspulse.wal3.WalletSecret
 import io.syspulse.skel.util.Util
 
 import io.syspulse.skel.crypto.Eth
-import io.syspulse.blockchain.Blockchains
+import io.syspulse.skel.blockchain.Blockchains
 import io.syspulse.wal3.signer.WalletSignerKMS
 import io.syspulse.wal3.signer.SignerSecret
 

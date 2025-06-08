@@ -3,17 +3,17 @@ package io.syspulse.wal3
 import scala.concurrent.duration.Duration
 import scala.concurrent.Future
 import scala.concurrent.Await
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.FiniteDuration
+
+import io.jvm.uuid._
 
 import io.syspulse.skel
 import io.syspulse.skel.util.Util
 import io.syspulse.skel.config._
 import io.syspulse.skel.auth.jwt.AuthJwt
-
-import io.jvm.uuid._
-
 import io.syspulse.skel.FutureAwaitable._
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.FiniteDuration
+import io.syspulse.skel.blockchain.Blockchains
 
 import io.syspulse.wal3._
 import io.syspulse.wal3.signer._
@@ -21,7 +21,7 @@ import io.syspulse.wal3.store._
 import io.syspulse.wal3.server._
 import io.syspulse.wal3.cypher._
 
-import io.syspulse.blockchain.Blockchains
+
 import java.util.Base64
 
 case class Config(

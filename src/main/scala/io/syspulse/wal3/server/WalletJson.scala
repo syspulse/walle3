@@ -10,7 +10,7 @@ import spray.json.{DefaultJsonProtocol, DeserializationException, JsString, JsVa
 
 import io.syspulse.wal3._
 import io.syspulse.wal3.server._
-import io.syspulse.blockchain.Blockchain
+import io.syspulse.skel.blockchain.Blockchain
 
 object WalletJson extends JsonCommon {
   
@@ -41,4 +41,6 @@ object WalletJson extends JsonCommon {
 
   implicit val jf_wal_call_req = jsonFormat6(WalletCallReq)
   implicit val jf_wal_call = jsonFormat2(WalletCall)
+
+  implicit val jf_wal_sign_712_req = jsonFormat11(WalletSign712Req)
 }
