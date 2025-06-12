@@ -27,7 +27,33 @@ SERVICE_URI=${SERVICE_URI:-http://localhost:8080/api/v1/wal}
 >&2 echo "PROVIDER=$PROVIDER"
 >&2 echo "NONCE=$NONCE"
 
-#DATA_JSON="{\"to\":\"$TO\",\"data\":\"$DATA\",\"value\":\"$VALUE\",\"gasPrice\":\"$FEE\",\"gasTip\":\"$TIP\",\"gasLimit\":$LIMIT, \"nonce\":$NONCE,\"chain\":{\"name\":\"evm\",\"id\":\"$CHAIN_ID\"}}"
+# DATA_JSON=$(cat << EOF
+# {
+#   "name": "$NAME",
+#   "version": "$VER",
+#   "verifyingContract": "$VERIFYING_CONTRACT",
+#   "chain": {
+#     "name": "evm",
+#     "id": "$CHAIN_ID"
+#   },
+#   "primaryType": "grantProviderRoleToContract",
+
+#   "types": {
+#     "grantProviderRoleToContract": [
+#       {"name": "monitoredContract", "type": "address"},
+#       {"name": "provider", "type": "address"},
+#       {"name": "nonce", "type": "uint256"}
+#     ]
+#   },
+#   "value": {
+#     "monitoredContract": "$MONITORED_CONTRACT",
+#     "provider": "$PROVIDER",
+#     "nonce": $NONCE
+#   }
+# }
+# EOF
+# )
+
 
 DATA_JSON=$(cat << EOF
 {
@@ -35,8 +61,8 @@ DATA_JSON=$(cat << EOF
   "version": "$VER",
   "verifyingContract": "$VERIFYING_CONTRACT",
   "chain": {
-    "name": "evm",
-    "id": "$CHAIN_ID"
+    "name": "ethereum",
+    "id": ""
   },
   "primaryType": "grantProviderRoleToContract",
 
